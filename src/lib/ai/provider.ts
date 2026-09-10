@@ -2,6 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import { AIProvider, GenerateResponseParams, RoutingResult } from './types';
 
 const FALLBACK_MODELS = [
+  'gemini-3.5-flash-lite',
   'gemini-3.5-flash',
   'gemini-3.6-flash',
 ];
@@ -16,7 +17,7 @@ export class GeminiProvider implements AIProvider {
       console.warn('AI_API_KEY / GEMINI_API_KEY is not set. AI calls will fail until configured.');
     }
     this.ai = new GoogleGenAI({ apiKey: key });
-    this.primaryModel = modelName || process.env.AI_MODEL || 'gemini-3.5-flash';
+    this.primaryModel = modelName || process.env.AI_MODEL || 'gemini-3.5-flash-lite';
   }
 
   /**

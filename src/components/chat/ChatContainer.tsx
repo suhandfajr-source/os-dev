@@ -291,13 +291,25 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
               </div>
             )}
 
-            {/* Error Banner */}
+            {/* Error Banner with Retry */}
             {errorMessage && (
               <div className="mx-4 md:mx-auto max-w-2xl my-3 p-3.5 rounded-xl bg-[#3b171c] border border-[#f15c6d]/40 text-[#ffd5d9] text-xs md:text-sm flex items-start gap-2.5 shadow-lg">
                 <AlertCircle className="w-4 h-4 text-[#f15c6d] flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <div className="font-semibold text-[#f15c6d] mb-0.5">Kendala Respons</div>
-                  <div>{errorMessage}</div>
+                  <div className="mb-2 text-[#ffd5d9]/90">{errorMessage}</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+                      if (lastUserMsg?.content) {
+                        handleSendMessage(lastUserMsg.content, []);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f15c6d]/20 hover:bg-[#f15c6d]/30 text-[#f15c6d] font-medium text-xs border border-[#f15c6d]/40 transition-colors"
+                  >
+                    🔄 Coba Kirim Ulang
+                  </button>
                 </div>
               </div>
             )}
