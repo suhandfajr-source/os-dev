@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, ImagePlus, X, Loader2 } from 'lucide-react';
+import { Send, Paperclip, X, Loader2 } from 'lucide-react';
 
 export interface PendingAttachment {
   file: File;
@@ -42,7 +42,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
     }
   }, [content]);
 
@@ -56,7 +56,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        
+
         // Validate MIME type
         const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
         if (!validTypes.includes(file.type)) {
@@ -156,15 +156,15 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 pb-4">
+    <div className="w-full max-w-5xl mx-auto">
       {/* Upload Error Banner */}
       {uploadError && (
-        <div className="mb-2 p-2.5 rounded-lg bg-rose-950/60 border border-rose-800/60 text-xs text-rose-300 flex items-center justify-between">
+        <div className="mb-2 p-2 rounded-lg bg-[#3b171c] border border-[#f15c6d]/40 text-xs text-[#ffd5d9] flex items-center justify-between">
           <span>{uploadError}</span>
           <button
             type="button"
             onClick={() => setUploadError(null)}
-            className="text-rose-400 hover:text-white"
+            className="text-[#f15c6d] hover:text-white"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -173,11 +173,11 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 
       {/* Attachment Previews */}
       {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2.5 p-3 mb-2 bg-slate-800/80 rounded-xl border border-slate-700/80">
+        <div className="flex flex-wrap gap-2.5 p-2.5 mb-2 bg-[#111b21] rounded-xl border border-[#2a3942]">
           {attachments.map((att, idx) => (
             <div
               key={idx}
-              className="relative group w-20 h-20 rounded-lg overflow-hidden border border-slate-600 bg-slate-900"
+              className="relative group w-16 h-16 rounded-lg overflow-hidden border border-[#2a3942] bg-[#0b141a]"
             >
               <img
                 src={att.previewUrl}
@@ -187,8 +187,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               <button
                 type="button"
                 onClick={() => removeAttachment(idx)}
-                className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-rose-600 text-white rounded-full transition-colors"
-                title="Hapus gambar"
+                className="absolute top-1 right-1 p-0.5 bg-black/75 hover:bg-[#ea0038] text-white rounded-full transition-colors"
+                title="Hapus foto"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -197,10 +197,10 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         </div>
       )}
 
-      {/* Composer Form Input Box */}
+      {/* WhatsApp Composer Bar */}
       <form
         onSubmit={handleSubmit}
-        className="relative flex items-end bg-slate-800/90 border border-slate-700/80 rounded-2xl p-2 shadow-lg focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/50 transition-all"
+        className="flex items-end gap-2"
       >
         {/* Hidden File Input */}
         <input
@@ -212,33 +212,35 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           className="hidden"
         />
 
-        {/* Attachment Button */}
+        {/* Attachment Paperclip Button */}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isLoading || isUploading}
-          className="p-2.5 rounded-xl text-slate-400 hover:text-blue-400 hover:bg-slate-700/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex-shrink-0"
-          title="Lampirkan screenshot/gambar"
+          className="p-2.5 text-[#8696a0] hover:text-[#e9edef] hover:bg-[#374248] rounded-full transition-colors disabled:opacity-40 cursor-pointer flex-shrink-0 mb-0.5"
+          title="Lampirkan foto/screenshot"
         >
           {isUploading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+            <Loader2 className="w-5 h-5 animate-spin text-[#00a884]" />
           ) : (
-            <ImagePlus className="w-5 h-5" />
+            <Paperclip className="w-5 h-5 -rotate-45" />
           )}
         </button>
 
-        {/* Textarea */}
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Tanyakan konsep, paste kode atau error (Enter untuk kirim, Shift+Enter untuk baris baru)..."
-          rows={1}
-          className="flex-1 bg-transparent px-3 py-2 text-sm md:text-base text-slate-100 placeholder-slate-400 resize-none focus:outline-none max-h-48 overflow-y-auto"
-        />
+        {/* WhatsApp Pill Input Textarea */}
+        <div className="flex-1 bg-[#2a3942] rounded-xl px-3.5 py-2 flex items-center border border-transparent focus-within:border-[#00a884]/60 transition-colors">
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ketik pesan..."
+            rows={1}
+            className="w-full bg-transparent text-sm md:text-[15px] text-[#e9edef] placeholder-[#8696a0] resize-none focus:outline-none max-h-36 overflow-y-auto leading-relaxed"
+          />
+        </div>
 
-        {/* Send Button */}
+        {/* WhatsApp Green Send Button */}
         <button
           type="submit"
           id="chat-send-btn"
@@ -247,17 +249,17 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             handleSubmit();
           }}
           disabled={!canSubmit}
-          className={`p-2.5 rounded-xl text-white font-medium shadow-md transition-all flex-shrink-0 ml-1 ${
+          className={`w-10 h-10 rounded-full flex items-center justify-center shadow-md transition-all flex-shrink-0 mb-0.5 ${
             canSubmit
-              ? 'bg-blue-600 hover:bg-blue-500 active:bg-blue-700 cursor-pointer shadow-blue-500/20'
-              : 'bg-slate-700/60 text-slate-500 cursor-not-allowed opacity-50'
+              ? 'bg-[#00a884] hover:bg-[#02906f] active:scale-95 text-white cursor-pointer shadow-[#00a884]/20'
+              : 'bg-[#2a3942] text-[#8696a0] cursor-not-allowed opacity-50'
           }`}
-          title={canSubmit ? 'Kirim pesan' : 'Tulis pesan terlebih dahulu'}
+          title={canSubmit ? 'Kirim pesan' : 'Tulis pesan...'}
         >
           {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-blue-300" />
+            <Loader2 className="w-5 h-5 animate-spin text-white" />
           ) : (
-            <Send className="w-5 h-5" />
+            <Send className="w-4 h-4 ml-0.5 fill-current" />
           )}
         </button>
       </form>

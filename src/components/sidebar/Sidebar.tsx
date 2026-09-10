@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Sparkles } from 'lucide-react';
+import { Plus, Search, MessageSquarePlus, User } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Conversation } from '@/types';
@@ -11,6 +11,7 @@ import { SearchModal } from './SearchModal';
 export const Sidebar: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [filterQuery, setFilterQuery] = useState('');
   const params = useParams();
   const router = useRouter();
   const currentId = params?.id as string | undefined;
@@ -64,7 +65,14 @@ export const Sidebar: React.FC = () => {
     }
   };
 
-  // Group conversations by date: Today, Previous 7 Days, Older
+  // Filter by search query if any
+  const filteredConversations = filterQuery.trim()
+    ? conversations.filter((c) =>
+        c.title.toLowerCase().includes(filterQuery.toLowerCase())
+      )
+    : conversations;
+
+  // Group conversations by date
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const sevenDaysAgo = todayStart - 7 * 24 * 60 * 60 * 1000;
@@ -73,7 +81,7 @@ export const Sidebar: React.FC = () => {
   const sevenDaysList: Conversation[] = [];
   const olderList: Conversation[] = [];
 
-  for (const conv of conversations) {
+  for (const conv of filteredConversations) {
     const time = new Date(conv.updated_at).getTime();
     if (time >= todayStart) {
       todayList.push(conv);
@@ -86,47 +94,54 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      <aside className="w-64 md:w-72 bg-slate-900 border-r border-slate-800 flex flex-col h-screen select-none flex-shrink-0">
-        {/* Header Branding & Action Buttons */}
-        <div className="p-3.5 space-y-2 border-b border-slate-800/80">
-          <div className="flex items-center gap-2 px-2 py-1 mb-2">
-            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20">
-              <Sparkles className="w-4 h-4" />
+      <aside className="w-72 md:w-80 bg-[#111b21] border-r border-[#222d34] flex flex-col h-screen select-none flex-shrink-0">
+        {/* WhatsApp Sidebar Top Header */}
+        <div className="h-15 px-4 bg-[#202c33] border-b border-[#222d34] flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-sm" title="Profil Kamu">
+              <User className="w-5 h-5" />
             </div>
-            <span className="font-semibold text-sm text-slate-100 tracking-tight">
-              Vibe Coding Assistant
+            <span className="font-semibold text-sm text-[#e9edef] tracking-tight">
+              Obrolan
             </span>
           </div>
 
-          <Link
-            href="/"
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow transition-colors justify-center"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Chat</span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => setIsSearchOpen(true)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-300 bg-slate-800/80 hover:bg-slate-800 hover:text-white rounded-lg border border-slate-700/60 transition-colors"
-          >
-            <Search className="w-4 h-4 text-slate-400" />
-            <span>Search...</span>
-          </button>
+          <div className="flex items-center gap-1 text-[#aebac1]">
+            <Link
+              href="/"
+              className="p-2 rounded-full hover:bg-[#374248] text-[#aebac1] hover:text-[#e9edef] transition-colors"
+              title="Obrolan Baru"
+            >
+              <MessageSquarePlus className="w-5 h-5" />
+            </Link>
+          </div>
         </div>
 
-        {/* Conversation List Grouped */}
-        <div className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
-          {conversations.length === 0 ? (
-            <div className="text-center py-8 px-4 text-xs text-slate-400">
-              Belum ada percakapan. Mulai percakapan baru untuk bertanya!
+        {/* WhatsApp Search Input Bar */}
+        <div className="p-2.5 bg-[#111b21] border-b border-[#222d34]/60">
+          <div className="flex items-center bg-[#202c33] rounded-lg px-3 py-1.5 focus-within:ring-1 focus-within:ring-[#00a884]">
+            <Search className="w-4 h-4 text-[#8696a0] mr-2.5 flex-shrink-0" />
+            <input
+              type="text"
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              placeholder="Cari obrolan..."
+              className="w-full bg-transparent text-xs text-[#e9edef] placeholder-[#8696a0] focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Conversation List */}
+        <div className="flex-1 overflow-y-auto px-2 py-2 space-y-3">
+          {filteredConversations.length === 0 ? (
+            <div className="text-center py-10 px-4 text-xs text-[#8696a0]">
+              {filterQuery ? 'Tidak ada obrolan ditemukan.' : 'Belum ada obrolan. Mulai obrolan baru untuk bertanya!'}
             </div>
           ) : (
             <>
               {todayList.length > 0 && (
                 <div>
-                  <div className="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  <div className="px-3 py-1 text-[11px] font-semibold text-[#8696a0] uppercase tracking-wider">
                     Hari Ini
                   </div>
                   <div className="space-y-0.5 mt-1">
@@ -145,7 +160,7 @@ export const Sidebar: React.FC = () => {
 
               {sevenDaysList.length > 0 && (
                 <div>
-                  <div className="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  <div className="px-3 py-1 text-[11px] font-semibold text-[#8696a0] uppercase tracking-wider">
                     7 Hari Terakhir
                   </div>
                   <div className="space-y-0.5 mt-1">
@@ -164,7 +179,7 @@ export const Sidebar: React.FC = () => {
 
               {olderList.length > 0 && (
                 <div>
-                  <div className="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  <div className="px-3 py-1 text-[11px] font-semibold text-[#8696a0] uppercase tracking-wider">
                     Lebih Lama
                   </div>
                   <div className="space-y-0.5 mt-1">

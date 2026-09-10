@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Message, AssistantResponsePayload } from '@/types';
-import { Bot, User, Sparkles, X } from 'lucide-react';
+import { Bot, User, Sparkles, CheckCheck, X } from 'lucide-react';
 import { MarkdownRenderer } from '../markdown/MarkdownRenderer';
 import { ResponseBlocksRenderer } from './ResponseBlocksRenderer';
 
@@ -25,74 +25,88 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   }
 
   // Display persona name if available
-  const personaDisplay =
+  const personaName =
     parsedPayload?.persona?.name ||
     (message.behavior_context?.startsWith('Persona:')
-      ? message.behavior_context
+      ? message.behavior_context.replace('Persona:', '').trim()
       : message.behavior_context
-      ? 'Sesuai Brief'
-      : null);
+      ? 'Vibe Assistant'
+      : 'Vibe Assistant');
+
+  const formattedTime = new Date(message.created_at).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   return (
     <div
-      className={`py-4 px-4 md:px-6 flex gap-3 md:gap-4 transition-colors ${
-        isUser ? 'bg-transparent justify-end' : 'bg-slate-800/40 border-y border-slate-800/50 justify-start'
+      className={`py-1.5 px-3 md:px-6 flex w-full transition-all ${
+        isUser ? 'justify-end' : 'justify-start'
       }`}
     >
-      <div className={`flex gap-3 md:gap-4 max-w-4xl w-full ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-        {/* Avatar */}
+      <div
+        className={`flex gap-2.5 max-w-[92%] md:max-w-[78%] items-end ${
+          isUser ? 'flex-row-reverse' : 'flex-row'
+        }`}
+      >
+        {/* Avatar Profile Picture */}
         <div
-          className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-semibold shadow-sm ${
+          className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ${
             isUser
-              ? 'bg-blue-600 text-white'
-              : 'bg-emerald-600 text-white shadow-emerald-900/30'
+              ? 'bg-emerald-600 text-white'
+              : 'bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 font-bold'
           }`}
+          title={isUser ? 'Kamu' : personaName}
         >
-          {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+          {isUser ? (
+            <User className="w-4 h-4 text-white" />
+          ) : (
+            <Bot className="w-4 h-4 text-slate-950" />
+          )}
         </div>
 
-        {/* Content Container */}
-        <div className={`flex-1 min-w-0 ${isUser ? 'text-right' : 'text-left'}`}>
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span className="text-xs font-semibold text-slate-300">
-              {isUser ? 'Kamu' : 'Assistant'}
-            </span>
-
-            {/* Persona Badge */}
-            {!isUser && personaDisplay && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                <Sparkles className="w-3 h-3" />
-                {personaDisplay}
+        {/* WhatsApp Chat Bubble */}
+        <div
+          className={`relative rounded-2xl shadow-sm text-left transition-all ${
+            isUser
+              ? 'bg-[#005c4b] text-[#e9edef] rounded-tr-xs px-3.5 pt-2.5 pb-2 border border-[#005c4b]'
+              : 'bg-[#202c33] text-[#e9edef] rounded-tl-xs px-4 pt-3 pb-2.5 border border-[#2a3942]'
+          }`}
+        >
+          {/* Persona Header for Assistant */}
+          {!isUser && (
+            <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-[#2a3942]/60">
+              <span className="text-xs font-bold text-[#53bdeb] tracking-wide flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-[#25d366]" />
+                ~ {personaName}
               </span>
-            )}
-
-            <span className="text-[10px] text-slate-400">
-              {new Date(message.created_at).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
-          </div>
+              <span className="text-[10px] text-[#8696a0] font-normal">
+                (Personal AI)
+              </span>
+            </div>
+          )}
 
           {/* User Attachments if any */}
           {message.attachments && message.attachments.length > 0 && (
-            <div className={`flex flex-wrap gap-2 mb-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+            <div className="flex flex-wrap gap-2 mb-2.5">
               {message.attachments.map((att) => {
-                const src = att.storage_path ? `/uploads/${att.storage_path.split(/[\\/]/).pop()}` : '';
+                const src = att.storage_path
+                  ? `/uploads/${att.storage_path.split(/[\\/]/).pop()}`
+                  : '';
                 return (
                   <button
                     key={att.id}
                     type="button"
                     onClick={() => setSelectedImage(src)}
-                    className="relative group rounded-lg overflow-hidden border border-slate-700 bg-slate-800 hover:border-blue-500 transition-colors"
+                    className="relative group rounded-xl overflow-hidden border border-[#111b21] bg-[#111b21] hover:border-[#00a884] transition-all"
                   >
                     <img
                       src={src}
                       alt={att.filename}
-                      className="max-h-48 max-w-xs object-cover rounded-md"
+                      className="max-h-52 max-w-xs object-cover rounded-lg"
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs text-white">
-                      Perbesar
+                      Lihat Foto
                     </div>
                   </button>
                 );
@@ -102,36 +116,54 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
 
           {/* Message Content */}
           {isUser ? (
-            <div className="inline-block bg-blue-600/90 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm md:text-base text-left whitespace-pre-wrap leading-relaxed shadow-sm">
+            <div className="text-sm md:text-[15px] whitespace-pre-wrap leading-relaxed">
               {message.content}
             </div>
           ) : parsedPayload?.blocks && parsedPayload.blocks.length > 0 ? (
             <ResponseBlocksRenderer blocks={parsedPayload.blocks} />
           ) : (
-            <div className="text-slate-100">
+            <div className="text-[#e9edef] text-sm md:text-[15px]">
               <MarkdownRenderer content={message.content} />
             </div>
           )}
+
+          {/* Timestamp & Double Blue Check for WhatsApp Experience */}
+          <div
+            className={`flex items-center gap-1 mt-1.5 select-none ${
+              isUser ? 'justify-end' : 'justify-end text-[#8696a0]'
+            }`}
+          >
+            <span className="text-[11px] text-[#8696a0] leading-none">
+              {formattedTime}
+            </span>
+
+            {/* Double Blue Check (Centang 2 Biru) on User messages */}
+            {isUser && (
+              <span title="Terkirim & Terbaca" className="inline-flex items-center">
+                <CheckCheck className="w-4 h-4 text-[#53bdeb] stroke-[2.5]" />
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Lightbox for uploaded image */}
       {selectedImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs"
+          className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 backdrop-blur-sm"
           onClick={() => setSelectedImage(null)}
         >
           <div className="relative max-w-4xl max-h-[90vh] overflow-hidden">
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute top-3 right-3 p-2 bg-slate-900/80 hover:bg-slate-900 text-white rounded-full transition-colors z-10"
+              className="absolute top-3 right-3 p-2 bg-[#202c33] hover:bg-[#2a3942] text-white rounded-full transition-colors z-10"
             >
               <X className="w-5 h-5" />
             </button>
             <img
               src={selectedImage}
-              alt="Lampiran"
-              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+              alt="Lampiran WhatsApp"
+              className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
             />
           </div>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { HelpCircle, Terminal, Flame, Database, GitBranch } from 'lucide-react';
+import { Terminal, Flame, Database, GitBranch, Bot, Sparkles } from 'lucide-react';
 
 interface EmptyStateProps {
   onSelectPrompt: (promptText: string) => void;
@@ -11,17 +11,17 @@ const STARTER_PROMPTS = [
   {
     icon: Terminal,
     title: 'Apa itu CLI?',
-    subtitle: 'Penjelasan dasar terminal & command line',
+    subtitle: 'Penjelasan dasar terminal & command line dengan analogi',
   },
   {
     icon: Flame,
-    title: 'Jelasin error ini',
+    title: 'Jelasin pesan error ini',
     subtitle: 'Ketik atau paste pesan error coding kamu',
   },
   {
     icon: Database,
-    title: 'Apa bedanya API dan database?',
-    subtitle: 'Konsep dasar komunikasi data web',
+    title: 'Apa bedanya API dan Database?',
+    subtitle: 'Konsep dasar alur komunikasi data web',
   },
   {
     icon: GitBranch,
@@ -32,19 +32,29 @@ const STARTER_PROMPTS = [
 
 export const EmptyState: React.FC<EmptyStateProps> = ({ onSelectPrompt }) => {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-2xl mx-auto my-auto">
-      <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mb-4">
-        <HelpCircle className="w-6 h-6" />
+    <div className="flex-1 flex flex-col items-center justify-center p-4 text-center max-w-xl mx-auto my-auto select-none">
+      {/* WhatsApp Profile Avatar Header */}
+      <div className="relative mb-3">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center shadow-lg">
+          <Bot className="w-8 h-8" />
+        </div>
+        <div className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#25d366] border-2 border-[#0b141a]" />
       </div>
-      
-      <h2 className="text-xl md:text-2xl font-semibold text-slate-100 mb-2">
-        Apa yang lagi bikin kamu bingung?
+
+      <div className="flex items-center gap-1.5 text-xs text-[#25d366] font-semibold mb-1">
+        <Sparkles className="w-3.5 h-3.5" />
+        Personal Vibe Coding Assistant
+      </div>
+
+      <h2 className="text-lg md:text-xl font-semibold text-[#e9edef] mb-1">
+        Mulai Obrolan Baru
       </h2>
-      <p className="text-sm text-slate-400 mb-8 max-w-md">
-        Tanyakan istilah teknologi, paste potongan kode atau error, atau upload screenshot dari IDE dan terminal kamu.
+      <p className="text-xs md:text-sm text-[#8696a0] mb-6 max-w-sm">
+        Tanyakan istilah teknologi, paste potongan error, atau upload screenshot dari IDE & terminal kamu.
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
+      {/* Suggested Quick Cards in WhatsApp style */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
         {STARTER_PROMPTS.map((item, idx) => {
           const Icon = item.icon;
           return (
@@ -52,16 +62,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onSelectPrompt }) => {
               key={idx}
               onClick={() => onSelectPrompt(item.title)}
               type="button"
-              className="flex items-start gap-3 p-3.5 text-left rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition-all group"
+              className="flex items-start gap-2.5 p-3 text-left rounded-xl bg-[#202c33] hover:bg-[#2a3942] border border-[#2a3942] hover:border-[#00a884]/60 transition-all group shadow-sm cursor-pointer"
             >
-              <div className="p-2 rounded-lg bg-slate-700/50 text-blue-400 group-hover:text-blue-300 transition-colors flex-shrink-0">
+              <div className="p-2 rounded-lg bg-[#111b21] text-[#25d366] group-hover:text-[#53bdeb] transition-colors flex-shrink-0 mt-0.5">
                 <Icon className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors">
+                <div className="text-xs md:text-sm font-semibold text-[#e9edef] group-hover:text-[#25d366] transition-colors">
                   &quot;{item.title}&quot;
                 </div>
-                <div className="text-xs text-slate-400 mt-0.5">
+                <div className="text-[11px] text-[#8696a0] mt-0.5 leading-snug">
                   {item.subtitle}
                 </div>
               </div>
