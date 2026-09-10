@@ -2,9 +2,11 @@
 
 import React, { useState } from 'react';
 import { Message, AssistantResponsePayload } from '@/types';
-import { Bot, User, Sparkles, CheckCheck, X } from 'lucide-react';
+import { Sparkles, CheckCheck, X, User } from 'lucide-react';
 import { MarkdownRenderer } from '../markdown/MarkdownRenderer';
 import { ResponseBlocksRenderer } from './ResponseBlocksRenderer';
+import { getPersonaDetails } from '@/lib/personas';
+import { useUserProfile } from '../profile/UserProfileContext';
 
 interface MessageItemProps {
   message: Message;
@@ -12,6 +14,7 @@ interface MessageItemProps {
 
 export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const isUser = message.role === 'user';
+  const { profile } = useUserProfile();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Try parsing response_payload if it exists
@@ -24,14 +27,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     }
   }
 
-  // Display persona name if available
-  const personaName =
+  // Display persona details
+  const personaRawName =
     parsedPayload?.persona?.name ||
     (message.behavior_context?.startsWith('Persona:')
       ? message.behavior_context.replace('Persona:', '').trim()
-      : message.behavior_context
-      ? 'Vibe Assistant'
-      : 'Vibe Assistant');
+      : message.behavior_context || 'Gib-run');
+
+  const persona = getPersonaDetails(personaRawName);
 
   const formattedTime = new Date(message.created_at).toLocaleTimeString([], {
     hour: '2-digit',
@@ -49,23 +52,30 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           isUser ? 'flex-row-reverse' : 'flex-row'
         }`}
       >
-        {/* Avatar Profile Picture */}
-        <div
-          className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ${
-            isUser
-              ? 'bg-emerald-600 text-white'
-              : 'bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 font-bold'
-          }`}
-          title={isUser ? 'Kamu' : personaName}
-        >
+        {/* Natural Avatar Profile Picture */}
+        <div className="w-8 h-8 md:w-9 md:h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 shadow-md border border-[#2a3942]/60">
           {isUser ? (
-            <User className="w-4 h-4 text-white" />
+            profile.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt={profile.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-emerald-600 flex items-center justify-center text-white">
+                <User className="w-4 h-4 text-white" />
+              </div>
+            )
           ) : (
-            <Bot className="w-4 h-4 text-slate-950" />
+            <div
+              className="w-full h-full"
+              dangerouslySetInnerHTML={{ __html: persona.avatarSvg }}
+              title={`${persona.name} — ${persona.title}`}
+            />
           )}
         </div>
 
-        {/* WhatsApp Chat Bubble */}
+        {/* WhatsApp Group Chat Bubble */}
         <div
           className={`relative rounded-2xl shadow-sm text-left transition-all ${
             isUser
@@ -73,15 +83,18 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               : 'bg-[#202c33] text-[#e9edef] rounded-tl-xs px-4 pt-3 pb-2.5 border border-[#2a3942]'
           }`}
         >
-          {/* Persona Header for Assistant */}
+          {/* Persona Header for Assistant in WhatsApp Group Style */}
           {!isUser && (
-            <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-[#2a3942]/60">
-              <span className="text-xs font-bold text-[#53bdeb] tracking-wide flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-[#25d366]" />
-                ~ {personaName}
+            <div className="flex items-center gap-2 mb-1.5 pb-1 border-b border-[#2a3942]/60 flex-wrap">
+              <span
+                className="text-xs font-bold tracking-wide flex items-center gap-1"
+                style={{ color: persona.color }}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                ~ {persona.name}
               </span>
-              <span className="text-[10px] text-[#8696a0] font-normal">
-                (Personal AI)
+              <span className="text-[10px] text-[#8696a0] font-normal bg-[#111b21] px-1.5 py-0.5 rounded border border-[#2a3942]/50">
+                {persona.title}
               </span>
             </div>
           )}

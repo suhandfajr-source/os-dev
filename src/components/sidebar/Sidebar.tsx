@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, MessageSquarePlus, User } from 'lucide-react';
+import { Search, MessageSquarePlus, User, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Conversation } from '@/types';
 import { ConversationItem } from './ConversationItem';
 import { SearchModal } from './SearchModal';
+import { useUserProfile } from '../profile/UserProfileContext';
 
 export const Sidebar: React.FC = () => {
+  const { profile, openModal } = useUserProfile();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [filterQuery, setFilterQuery] = useState('');
@@ -95,15 +97,35 @@ export const Sidebar: React.FC = () => {
   return (
     <>
       <aside className="w-72 md:w-80 bg-[#111b21] border-r border-[#222d34] flex flex-col h-screen select-none flex-shrink-0">
-        {/* WhatsApp Sidebar Top Header */}
+        {/* WhatsApp Sidebar Top Header with User Profile Setting Button */}
         <div className="h-15 px-4 bg-[#202c33] border-b border-[#222d34] flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-sm" title="Profil Kamu">
-              <User className="w-5 h-5" />
+          <div
+            onClick={openModal}
+            className="flex items-center gap-2.5 cursor-pointer group p-1 -ml-1 rounded-lg hover:bg-[#2a3942] transition-colors"
+            title="Klik untuk atur foto profil & nama kamu"
+          >
+            {/* User Avatar */}
+            <div className="relative">
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-emerald-600 text-white flex items-center justify-center shadow-sm border border-[#2a3942]">
+                {profile.avatarUrl ? (
+                  <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-5 h-5" />
+                )}
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#00a884] text-white flex items-center justify-center border border-[#202c33]">
+                <Settings className="w-2.5 h-2.5" />
+              </div>
             </div>
-            <span className="font-semibold text-sm text-[#e9edef] tracking-tight">
-              Obrolan
-            </span>
+
+            <div className="flex flex-col">
+              <span className="font-semibold text-sm text-[#e9edef] group-hover:text-[#25d366] transition-colors leading-tight">
+                {profile.name}
+              </span>
+              <span className="text-[10px] text-[#8696a0]">
+                Profil Kamu
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-1 text-[#aebac1]">
