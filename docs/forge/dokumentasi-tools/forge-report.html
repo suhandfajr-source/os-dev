@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge Report — Dokumentasi Tools</title>
+</head>
+<body style="margin:0;background:#0b141a;font-family:'Segoe UI',system-ui,sans-serif;color:#e9edef;">
+<div style="max-width:760px;margin:0 auto;padding:40px 24px;">
+
+  <div style="text-align:center;margin-bottom:36px;">
+    <div style="font-size:13px;letter-spacing:3px;color:#00a884;text-transform:uppercase;">BMad Forge Idea — Laporan Sesi</div>
+    <h1 style="margin:8px 0 4px;font-size:30px;">Dokumentasi Tools</h1>
+    <div style="color:#8696a0;font-size:14px;">Personal Vibe Coding Assistant · branch <code style="color:#00a884;">Explore</code></div>
+  </div>
+
+  <!-- Wax seal -->
+  <div style="text-align:center;margin:0 auto 40px;">
+    <div style="display:inline-block;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#1fa855,#075e54 70%);box-shadow:0 6px 24px rgba(0,0,0,.5),inset 0 0 0 6px rgba(255,255,255,.12);transform:rotate(-8deg);display:flex;align-items:center;justify-content:center;">
+      <div style="text-align:center;color:#fff;">
+        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" style="margin-bottom:2px;"><path d="M20 6L9 17l-5-5"/></svg>
+        <div style="font-size:17px;font-weight:800;letter-spacing:2px;">HARDENED</div>
+        <div style="font-size:9px;letter-spacing:1px;opacity:.8;">IDEA APPROVED BY FORGE</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#111b21;border:1px solid #222d34;border-radius:12px;padding:20px 22px;margin-bottom:20px;">
+    <h2 style="margin:0 0 12px;font-size:16px;color:#00a884;">Ringkasan Hasil</h2>
+    <p style="margin:0;line-height:1.7;font-size:14.5px;color:#d1d7db;">
+      Ide "dokumentasi tools" dipertajam lewat 4 cabang diskusi dan 6 keputusan terkunci:
+      penyimpanan dengan konfirmasi (chips), entri 4 field, recall hemat via FTS lokal,
+      UI tetap WhatsApp native, kelola lewat chat, dan satu knowledge base bertipe yang extensible.
+      Fitur "Project Partner" ditunda sebagai produk terpisah berukuran project-sized.
+    </p>
+  </div>
+
+  <div style="background:#111b21;border:1px solid #222d34;border-radius:12px;padding:20px 22px;margin-bottom:20px;">
+    <h2 style="margin:0 0 12px;font-size:16px;color:#00a884;">Keputusan Terkunci</h2>
+    <ol style="margin:0;padding-left:20px;line-height:1.9;font-size:14px;color:#d1d7db;">
+      <li><b>Simpan setelah konfirmasi</b> — chips <code>Simpan 📦 / Edit / Skip</code>, bukan auto-save</li>
+      <li><b>Entri 4 field</b> — nama, fungsi (bahasa awam), kapan dipakai, cara mulai. Ditolak: tags, link, tanggal+sumber</li>
+      <li><b>Recall hemat</b> — FTS lokal sebelum AI; suntik konteks bila cocok; tanpa cocok = nol biaya</li>
+      <li><b>UI WhatsApp native</b> — nol elemen baru di luar chat</li>
+      <li><b>Kelola via chat</b> — hapus selalu konfirmasi ulang</li>
+      <li><b>Satu KB bertipe, extensible</b> — tool/library/layanan/konsep (+ commit/bug/keputusan nanti)</li>
+    </ol>
+  </div>
+
+  <div style="background:#111b21;border:1px solid #222d34;border-radius:12px;padding:20px 22px;margin-bottom:20px;">
+    <h2 style="margin:0 0 12px;font-size:16px;color:#00a884;">Yang Ditolak &amp; Mengapa</h2>
+    <ul style="margin:0;padding-left:20px;line-height:1.9;font-size:14px;color:#d1d7db;">
+      <li><b>Auto-save semua tools</b> → DB penuh sampah; butuh fitur kelola tambahan yang tak terhitung</li>
+      <li><b>Recall via LLM tiap pesan</b> → 2× panggilan model per pesan, boros kuota Gemini</li>
+      <li><b>Recall pasif</b> → KB jadi catatan yang tak pernah dibaca; fitur gagal diam-diam</li>
+      <li><b>Tab/halaman UI baru</b> → melanggar prinsip WhatsApp native milik user</li>
+      <li><b>Eksekusi paralel dengan Project Partner</b> → scope terlalu besar, dua-duanya berisiko gagal</li>
+    </ul>
+  </div>
+
+  <div style="background:#111b21;border:1px solid #222d34;border-radius:12px;padding:20px 22px;margin-bottom:20px;">
+    <h2 style="margin:0 0 12px;font-size:16px;color:#00a884;">Titik Lemah yang Selamat</h2>
+    <ul style="margin:0;padding-left:20px;line-height:1.9;font-size:14px;color:#d1d7db;">
+      <li>KB tumbuh lambat bila user jarang konfirmasi simpan — pantau setelah rilis</li>
+      <li>Mesin bisa salah menyebut entri kurang relevan — ambang ketat + instruksi prompt</li>
+      <li>Ambiguitas perintah hapus — mitigasi: konfirmasi ulang wajib</li>
+    </ul>
+  </div>
+
+  <div style="background:#111b21;border:1px solid #222d34;border-radius:12px;padding:20px 22px;margin-bottom:28px;">
+    <h2 style="margin:0 0 12px;font-size:16px;color:#00a884;">Persona yang Menguji</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;">
+      <span style="background:#202c33;border-radius:20px;padding:6px 14px;">🎯 Yui — Craftsman</span>
+      <span style="background:#202c33;border-radius:20px;padding:6px 14px;">🚢 Dana — Pragmatist</span>
+      <span style="background:#202c33;border-radius:20px;padding:6px 14px;">😤 Grumbal — Adversary</span>
+      <span style="background:#202c33;border-radius:20px;padding:6px 14px;">🌶️ Boundary — Edge-Case Hunter</span>
+      <span style="background:#202c33;border-radius:20px;padding:6px 14px;">🤝 Chyrel — Consensus Challenger</span>
+      <span style="background:#202c33;border-radius:20px;padding:6px 14px;">👩‍💻 Rara — Vibe Coder Pemula</span>
+      <span style="background:#202c33;border-radius:20px;padding:6px 14px;">👩‍🎨 Kinanti — Desainer Produk</span>
+    </div>
+  </div>
+
+  <div style="text-align:center;color:#8696a0;font-size:12.5px;line-height:1.8;">
+    Hasil lengkap: <code style="color:#00a884;">docs/forge/dokumentasi-tools/forged-idea.md</code><br>
+    Langkah berikutnya: <code style="color:#00a884;">bmad-spec</code> → stories → <code style="color:#00a884;">bmad-build</code>
+  </div>
+
+</div>
+</body>
+</html>

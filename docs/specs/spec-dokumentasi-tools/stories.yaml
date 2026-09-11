@@ -1,0 +1,38 @@
+- id: "1"
+  title: Fondasi KB bertipe + FTS index di libSQL
+  description: >-
+    Membuat satu tabel knowledge base dengan kolom tipe (tool/library/layanan/konsep),
+    empat field entri, dan virtual table FTS5 untuk pencarian. Tanpa perubahan UI apa pun.
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Gunakan @libsql/client yang sudah ada; jangan tambahkan dependency baru.
+    Skema harus extensible: tipe baru (commit/bug/keputusan) harus bisa ditambah
+    tanpa migrasi. Cakupan CAP-5 bagian skema saja; logika dedup/update menyusul di story 4.
+- id: "2"
+  title: Simpan terkonfirmasi + entri 4 field (CAP-1, CAP-2)
+  description: >-
+    Deteksi topik tools/library/layanan/konsep pada jawaban mesin, tawaran quick reply
+    chips (Simpan/Edit/Skip), dan penyimpanan entri 4 field hanya dari aksi user.
+  invoke_dev_with: >-
+    Chips dan konfirmasi harus memakai gaya komponen chat WhatsApp yang sudah ada;
+    dilarang membuat komponen UI baru di luar bubble chat. Chip Edit = mode revisi via
+    pesan chat berikutnya (1-2 giliran, lalu tawarkan simpan lagi) — bukan form inline.
+- id: "3"
+  title: Recall hemat via FTS + suntik prompt (CAP-3)
+  description: >-
+    Menjalankan pencarian FTS lokal atas KB sebelum prompt dikirim ke AI, menyuntikkan
+    entri yang cocok ke prompt builder dengan instruksi sebutkan-bila-relevan.
+  invoke_dev_with: >-
+    Tanpa panggilan AI tambahan dalam semua jalur — pencarian hanya FTS5 lokal.
+    Ambang kecocokan mulai ketat: salah sebut lebih buruk daripada terlalu sunyi.
+    Tanpa kecocokan, perilaku chat harus identik dengan sekarang.
+- id: "4"
+  title: Kelola via chat + dedup/update (CAP-4, CAP-5)
+  description: >-
+    Perintah chat natural untuk list, lihat, dan hapus entri (hapus selalu konfirmasi
+    ulang), plus update entri lama alih-alih duplikasi saat topik yang sama ditanyakan lagi.
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Perintah ambigu diperlakukan sebagai obrolan biasa — jangan pernah menebak untuk
+    menghapus atau mengubah data. List entri dirender satu bubble gaya WhatsApp.
+    Empty state: bubble singkat yang mengajak menyimpan entri pertama, tanpa layar khusus.
