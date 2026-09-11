@@ -7,6 +7,7 @@ import {
   addMessage,
   addAttachment,
   updateConversationTitle,
+  searchKnowledge,
 } from '@/lib/db';
 import { getAIProvider } from '@/lib/ai/provider';
 import { buildSystemPrompt } from '@/lib/ai/prompt-builder';
@@ -90,7 +91,27 @@ export async function POST(req: NextRequest) {
         'Terapkan revisi yang diminta user pada entri ini. Jawab dengan gaya persona biasa (singkat, tanpa salam pembuka penuh), dan WAJIB sertakan field "knowledge_entry" versi terbaru pada JSON.',
       ].join('\n');
     }
-    const systemPrompt = buildSystemPrompt({ behaviorContext });
+    // 5b. Recall hemat: FTS lokal atas KB sebelum panggilan AI (CAP-3)
+    let knowledgeContext: string | null = null;
+    if (content && content.trim().length > 0) {
+      try {
+        const kbHits = await searchKnowledge(content, 3);
+        if (kbHits.length > 0) {
+          knowledgeContext = kbHits
+            .map(
+              (k, i) =>
+                `${i + 1}. [${k.type}] ${k.name} — ${k.function_summary} (kapan dipakai: ${k.when_to_use})`
+            )
+            .join('\n');
+        }
+      } catch (kbErr) {
+        console.warn('Knowledge recall failed (non-fatal):', kbErr);
+      }
+    }
+    const finalSystemPrompt = buildSystemPrompt({
+      behaviorContext,
+      knowledgeContext,
+    });
 
     // 6. Format messages for AI provider
     const aiMessages: AIMessage[] = messages.map((m) => {
@@ -134,7 +155,7 @@ export async function POST(req: NextRequest) {
     let rawResponseText = '';
     try {
       rawResponseText = await provider.generateResponse({
-        systemPrompt,
+        systemPrompt: finalSystemPrompt,
         messages: aiMessages,
       });
     } catch (aiErr: any) {
