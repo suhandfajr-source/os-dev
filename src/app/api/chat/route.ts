@@ -29,7 +29,7 @@ interface IncomingAttachment {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    let { conversationId, content, attachments = [] } = body;
+    let { conversationId, content, attachments = [], kbEdit = null } = body;
 
     if (!content && (!attachments || attachments.length === 0)) {
       return NextResponse.json(
@@ -80,8 +80,17 @@ export async function POST(req: NextRequest) {
 
     const provider = getAIProvider();
 
-    // 5. Build Single-Pass System Prompt (incorporating Assistant Brief)
-    const systemPrompt = buildSystemPrompt();
+    // 5. Build Single-Pass System Prompt (incorporating Assistant Brief + KB revision context)
+    let behaviorContext: string | null = null;
+    if (kbEdit?.entry && typeof kbEdit.entry === 'object') {
+      behaviorContext = [
+        '# PERINTAH REVISI KNOWLEDGE BASE:',
+        'User sedang merevisi entri knowledge base berikut (JSON):',
+        JSON.stringify(kbEdit.entry),
+        'Terapkan revisi yang diminta user pada entri ini. Jawab dengan gaya persona biasa (singkat, tanpa salam pembuka penuh), dan WAJIB sertakan field "knowledge_entry" versi terbaru pada JSON.',
+      ].join('\n');
+    }
+    const systemPrompt = buildSystemPrompt({ behaviorContext });
 
     // 6. Format messages for AI provider
     const aiMessages: AIMessage[] = messages.map((m) => {
@@ -170,6 +179,10 @@ export async function POST(req: NextRequest) {
 
       finalPlainContent = deriveSearchableText(validatedPayload.blocks);
       finalPayloadJson = JSON.stringify(validatedPayload);
+
+      if (validatedPayload.knowledge_entry) {
+        finalPayloadJson = JSON.stringify({ ...validatedPayload, knowledge_status: 'pending' });
+      }
     } else {
       finalPlainContent = rawResponseText;
       const fallbackPayload: AssistantResponsePayload = {

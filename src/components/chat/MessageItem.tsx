@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Message, AssistantResponsePayload } from '@/types';
+import { Message, AssistantResponsePayload, PendingKnowledgeEntry } from '@/types';
 import { Sparkles, CheckCheck, X, User } from 'lucide-react';
 import { MarkdownRenderer } from '../markdown/MarkdownRenderer';
 import { ResponseBlocksRenderer } from './ResponseBlocksRenderer';
@@ -10,9 +10,14 @@ import { useUserProfile } from '../profile/UserProfileContext';
 
 interface MessageItemProps {
   message: Message;
+  onKbAction?: (
+    messageId: string,
+    action: 'save' | 'skip' | 'edit',
+    entry: PendingKnowledgeEntry
+  ) => void;
 }
 
-export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
+export const MessageItem: React.FC<MessageItemProps> = ({ message, onKbAction }) => {
   const isUser = message.role === 'user';
   const { profile } = useUserProfile();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -140,6 +145,16 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             </div>
           )}
 
+          {/* Knowledge Base Chips (Dokumentasi Tools) */}
+          {!isUser && parsedPayload?.knowledge_entry && (
+            <KnowledgeChips
+              status={parsedPayload.knowledge_status ?? 'pending'}
+              entry={parsedPayload.knowledge_entry}
+              disabled={!onKbAction}
+              onAction={(action) => onKbAction?.(message.id, action, parsedPayload!.knowledge_entry!)}
+            />
+          )}
+
           {/* Timestamp & Double Blue Check for WhatsApp Experience */}
           <div
             className={`flex items-center gap-1 mt-1.5 select-none ${
@@ -181,6 +196,61 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+/* ============ Knowledge Base Chips (Dokumentasi Tools) ============ */
+
+interface KnowledgeChipsProps {
+  status: 'pending' | 'saved' | 'skipped';
+  entry: PendingKnowledgeEntry;
+  disabled?: boolean;
+  onAction: (action: 'save' | 'skip' | 'edit') => void;
+}
+
+const KnowledgeChips: React.FC<KnowledgeChipsProps> = ({ status, entry, disabled, onAction }) => {
+  if (status === 'skipped') return null;
+
+  if (status === 'saved') {
+    return (
+      <div className="mt-2 flex items-center gap-1.5">
+        <span className="inline-flex items-center gap-1 text-[11px] text-[#25d366] bg-[#111b21] border border-[#25d366]/30 rounded-full px-2.5 py-1 select-none">
+          📦 Tersimpan ke Dokumentasi
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 pt-2 border-t border-[#2a3942]/60 flex flex-wrap items-center gap-1.5">
+      <span className="text-[10px] text-[#8696a0] mr-0.5 select-none truncate max-w-[140px]" title={entry.name}>
+        📦 Simpan <span className="font-medium text-[#e9edef]">{entry.name}</span>?
+      </span>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onAction('save')}
+        className="text-[11px] font-medium text-[#25d366] bg-[#111b21] hover:bg-[#00a884]/20 border border-[#25d366]/40 rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Simpan 📦
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onAction('edit')}
+        className="text-[11px] font-medium text-[#e9edef] bg-[#111b21] hover:bg-[#2a3942] border border-[#2a3942] rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        ✏️ Edit
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onAction('skip')}
+        className="text-[11px] text-[#8696a0] hover:text-[#e9edef] bg-transparent hover:bg-[#2a3942] rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Skip
+      </button>
     </div>
   );
 };

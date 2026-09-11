@@ -41,6 +41,14 @@ export const ResponseBlockSchema = z.discriminatedUnion('type', [
   TryItBlockSchema,
 ]);
 
+export const KnowledgeEntryContentSchema = z.object({
+  type: z.string().min(1),
+  name: z.string().min(1),
+  function_summary: z.string().min(1),
+  when_to_use: z.string().min(1),
+  how_to_start: z.string().min(1),
+});
+
 export const AssistantResponseSchema = z.object({
   persona: z
     .object({
@@ -51,6 +59,7 @@ export const AssistantResponseSchema = z.object({
     .optional(),
   autoTitle: z.string().optional(),
   blocks: z.array(ResponseBlockSchema).min(1),
+  knowledge_entry: KnowledgeEntryContentSchema.optional(),
 });
 
 /**
@@ -78,10 +87,12 @@ export function parseAndValidateAssistantResponse(rawText: string): AssistantRes
       console.warn('Structured response validation warning:', validation.error.format());
       // If blocks exists, construct a safe payload
       if (Array.isArray(parsed.blocks) && parsed.blocks.length > 0) {
+        const entryCheck = KnowledgeEntryContentSchema.safeParse(parsed.knowledge_entry);
         return {
           persona: parsed.persona,
           autoTitle: typeof parsed.autoTitle === 'string' ? parsed.autoTitle : undefined,
           blocks: parsed.blocks,
+          knowledge_entry: entryCheck.success ? entryCheck.data : undefined,
         };
       }
       return null;

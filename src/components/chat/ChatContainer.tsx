@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Message, ConversationWithMessages } from '@/types';
+import { Message, ConversationWithMessages, AssistantResponsePayload, PendingKnowledgeEntry } from '@/types';
 import { MessageItem } from './MessageItem';
 import { ChatComposer, PendingAttachment } from './ChatComposer';
 import { EmptyState } from './EmptyState';
@@ -27,6 +27,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedPrompt, setSelectedPrompt] = useState<string>('');
+  const [kbEditing, setKbEditing] = useState<{ messageId: string; entry: PendingKnowledgeEntry } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -77,10 +78,54 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     }
   };
 
+  const handleKbAction = async (
+    messageId: string,
+    action: 'save' | 'skip' | 'edit',
+    entry: PendingKnowledgeEntry
+  ) => {
+    if (action === 'edit') {
+      setKbEditing({ messageId, entry });
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, action }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Gagal memproses aksi dokumentasi.');
+      }
+      const data = await res.json();
+
+      // Update payload pesan lokal supaya chips persisten
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId || !m.response_payload) return m;
+          try {
+            const payload: AssistantResponsePayload = JSON.parse(m.response_payload);
+            payload.knowledge_status = data.knowledge_status;
+            payload.knowledge_id = data.knowledge_id ?? undefined;
+            return { ...m, response_payload: JSON.stringify(payload) };
+          } catch {
+            return m;
+          }
+        })
+      );
+    } catch (err: any) {
+      console.error('KB action error:', err);
+      setErrorMessage(err?.message || 'Gagal memproses aksi dokumentasi.');
+    }
+  };
+
   const handleSendMessage = async (content: string, attachments: PendingAttachment[]) => {
     setSelectedPrompt('');
     setErrorMessage(null);
     setIsLoading(true);
+    const activeKbEdit = kbEditing;
+    setKbEditing(null);
 
     // Create optimistic user message
     const tempUserMsgId = `temp-${Date.now()}`;
@@ -116,6 +161,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
             url: a.url,
             base64: a.base64,
           })),
+          kbEdit: activeKbEdit ? { messageId: activeKbEdit.messageId, entry: activeKbEdit.entry } : undefined,
         }),
       });
 
@@ -265,7 +311,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
         ) : (
           <div className="py-4 space-y-1.5 flex-1">
             {messages.map((msg) => (
-              <MessageItem key={msg.id} message={msg} />
+              <MessageItem key={msg.id} message={msg} onKbAction={handleKbAction} />
             ))}
 
             {/* WhatsApp Typing Bubble Indicator with Natural Portrait */}
@@ -321,6 +367,23 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
 
       {/* WhatsApp Chat Composer Bar */}
       <div className="bg-[#202c33] border-t border-[#222d34] px-3 py-2 z-10">
+        {/* KB Revision Context Banner (ala reply WhatsApp) */}
+        {kbEditing && (
+          <div className="flex items-center justify-between gap-2 px-3 py-1.5 mb-2 rounded-lg bg-[#111b21] border-l-4 border-[#25d366]">
+            <div className="min-w-0 text-xs">
+              <span className="text-[#25d366] font-medium">📦 Merevisi entri: {kbEditing.entry.name}</span>
+              <span className="text-[#8696a0]"> — tuliskan bagian yang mau diubah, nanti aku tawarkan simpan ulang</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setKbEditing(null)}
+              className="p-1 text-[#8696a0] hover:text-white transition-colors flex-shrink-0"
+              title="Batal revisi"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         <ChatComposer
           onSendMessage={handleSendMessage}
           isLoading={isLoading}

@@ -30,6 +30,7 @@ export function getAssistantBrief(): string {
 export interface BuildPromptParams {
   assistantBrief?: string;
   behaviorContext?: string | null;
+  knowledgeContext?: string | null;
 }
 
 const BASE_SYSTEM_PROMPT = `Kamu adalah Personal Vibe Coding Assistant yang bertugas membantu seorang pemula (super newbie) dalam dunia vibe coding dan software engineering sesuai pedoman lengkap di "Assistant Brief — Personal Vibe Coding Assistant".
@@ -125,11 +126,23 @@ Contoh format JSON lengkap:
   ]
 }
 
-Jika ini adalah obrolan lanjutan (follow-up), tanggapi dengan santai, sabar, dan to the point tanpa perlu mengulang salam pembuka awal.`;
+Jika ini adalah obrolan lanjutan (follow-up), tanggapi dengan santai, sabar, dan to the point tanpa perlu mengulang salam pembuka awal.
+
+# PENCATATAN KNOWLEDGE BASE (DOKUMENTASI TOOLS):
+Jika jawabanmu menjelaskan SATU tools, library, layanan, atau konsep IT yang spesifik dan paling utama, tambahkan field "knowledge_entry" pada objek JSON paling luar (sejajar dengan "persona", "autoTitle", "blocks") dengan format:
+{
+  "type": "tool" | "library" | "layanan" | "konsep",
+  "name": "Nama tools/istilahnya",
+  "function_summary": "1-2 kalimat fungsinya dalam bahasa awam",
+  "when_to_use": "situasi konkret kapan hal ini dipakai",
+  "how_to_start": "cara mulai: perintah install atau langkah pertama"
+}
+Semua nilai WAJIB string terisi dan ditulis dalam bahasa awam yang sama santainya dengan jawaban. Jika jawaban TIDAK berfokus pada satu tools/library/layanan/konsep spesifik, JANGAN sertakan field "knowledge_entry".`;
 
 export function buildSystemPrompt(params: BuildPromptParams = {}): string {
   const brief = params.assistantBrief ?? getAssistantBrief();
   const behaviorContext = params.behaviorContext;
+  const knowledgeContext = params.knowledgeContext;
 
   const sections: string[] = [BASE_SYSTEM_PROMPT];
 
@@ -143,6 +156,14 @@ ${brief.trim()}`);
     sections.push(`---
 # KONTEKS PERCAKAPAN:
 ${behaviorContext.trim()}`);
+  }
+
+  if (knowledgeContext && knowledgeContext.trim().length > 0) {
+    sections.push(`---
+# CATATAN TERSIMPAN DARI KNOWLEDGE BASE USER:
+${knowledgeContext.trim()}
+
+Gunakan catatan di atas sebagai konteks tambahan. Sebutkan hanya jika benar-benar relevan dengan pertanyaan, jangan dipaksakan.`);
   }
 
   return sections.join('\n\n');

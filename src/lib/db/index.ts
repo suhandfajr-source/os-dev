@@ -1,7 +1,7 @@
 import { createClient } from '@libsql/client';
 import path from 'path';
 import fs from 'fs';
-import { Conversation, Message, Attachment, ConversationWithMessages, SearchResult } from '@/types';
+import { Conversation, Message, Attachment, ConversationWithMessages, SearchResult, KnowledgeEntry } from '@/types';
 
 const DB_DIR = path.join(process.cwd(), 'data');
 if (!fs.existsSync(DB_DIR)) {
@@ -340,6 +340,112 @@ export async function searchConversations(query: string): Promise<SearchResult[]
     matched_role: String(r.matched_role) as 'user' | 'assistant' | 'system' | 'title',
     created_at: String(r.created_at),
   }));
+}
+
+export async function getMessageById(id: string): Promise<Message | null> {
+  await ensureDbInitialized();
+  const res = await client.execute({
+    sql: `SELECT id, conversation_id, role, content, behavior_context, response_payload, created_at FROM messages WHERE id = ?`,
+    args: [id],
+  });
+  if (res.rows.length === 0) return null;
+  const row = res.rows[0];
+  return {
+    id: String(row.id),
+    conversation_id: String(row.conversation_id),
+    role: String(row.role) as Message['role'],
+    content: String(row.content),
+    behavior_context: row.behavior_context ? String(row.behavior_context) : null,
+    response_payload: row.response_payload ? String(row.response_payload) : null,
+    created_at: String(row.created_at),
+    attachments: [],
+  };
+}
+
+export async function updateMessagePayload(messageId: string, responsePayload: string): Promise<void> {
+  await ensureDbInitialized();
+  await client.execute({
+    sql: `UPDATE messages SET response_payload = ? WHERE id = ?`,
+    args: [responsePayload, messageId],
+  });
+}
+
+function mapKnowledgeRow(row: any): KnowledgeEntry {
+  return {
+    id: String(row.id),
+    type: String(row.type),
+    name: String(row.name),
+    function_summary: String(row.function_summary),
+    when_to_use: String(row.when_to_use),
+    how_to_start: String(row.how_to_start),
+    created_at: String(row.created_at),
+    updated_at: String(row.updated_at),
+  };
+}
+
+export async function createKnowledgeEntry(
+  id: string,
+  entry: { type: string; name: string; function_summary: string; when_to_use: string; how_to_start: string }
+): Promise<KnowledgeEntry> {
+  await ensureDbInitialized();
+  await client.execute({
+    sql: `INSERT INTO knowledge_entries (id, type, name, function_summary, when_to_use, how_to_start) VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [id, entry.type, entry.name, entry.function_summary, entry.when_to_use, entry.how_to_start],
+  });
+  const res = await client.execute({ sql: `SELECT * FROM knowledge_entries WHERE id = ?`, args: [id] });
+  return mapKnowledgeRow(res.rows[0]);
+}
+
+export async function searchKnowledge(query: string, limit: number = 3): Promise<KnowledgeEntry[]> {
+  if (!query || query.trim().length === 0) return [];
+  await ensureDbInitialized();
+
+  // FTS5 aman: bungkus tiap token dengan kutip ganda, buang kutip dari input
+  const matchQuery = query
+    .trim()
+    .split(/\s+/)
+    .map((t) => `"${t.replace(/"/g, '')}"`)
+    .join(' ');
+  if (!matchQuery || matchQuery === '""') return [];
+
+  try {
+    const res = await client.execute({
+      sql: `
+        SELECT e.*
+        FROM knowledge_fts f
+        JOIN knowledge_entries e ON e.rowid = f.rowid
+        WHERE knowledge_fts MATCH ?
+        ORDER BY rank
+        LIMIT ?
+      `,
+      args: [matchQuery, limit],
+    });
+    return res.rows.map(mapKnowledgeRow);
+  } catch (err) {
+    console.warn('Knowledge FTS search failed:', err);
+    return [];
+  }
+}
+
+export async function getKnowledgeEntries(): Promise<KnowledgeEntry[]> {
+  await ensureDbInitialized();
+  const res = await client.execute(`SELECT * FROM knowledge_entries ORDER BY datetime(updated_at) DESC`);
+  return res.rows.map(mapKnowledgeRow);
+}
+
+export async function findKnowledgeEntriesByName(name: string): Promise<KnowledgeEntry[]> {
+  await ensureDbInitialized();
+  const res = await client.execute({
+    sql: `SELECT * FROM knowledge_entries WHERE LOWER(name) LIKE ? ORDER BY datetime(updated_at) DESC`,
+    args: [`%${name.trim().toLowerCase()}%`],
+  });
+  return res.rows.map(mapKnowledgeRow);
+}
+
+export async function deleteKnowledgeEntry(id: string): Promise<boolean> {
+  await ensureDbInitialized();
+  const res = await client.execute({ sql: `DELETE FROM knowledge_entries WHERE id = ?`, args: [id] });
+  return res.rowsAffected > 0;
 }
 
 export default client;

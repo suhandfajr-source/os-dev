@@ -58,6 +58,25 @@ export interface AssistantResponsePayload {
   persona?: AssistantPersona;
   autoTitle?: string;
   blocks: ResponseBlock[];
+  knowledge_entry?: PendingKnowledgeEntry;
+  knowledge_status?: 'pending' | 'saved' | 'skipped';
+  knowledge_id?: string;
+  kb_confirm?: KbConfirmDelete;
+}
+
+export interface PendingKnowledgeEntry {
+  type: KnowledgeEntryType;
+  name: string;
+  function_summary: string;
+  when_to_use: string;
+  how_to_start: string;
+}
+
+export interface KbConfirmDelete {
+  action: 'delete';
+  entry_id: string;
+  name: string;
+  status?: 'pending' | 'confirmed' | 'cancelled';
 }
 
 export interface Message {
