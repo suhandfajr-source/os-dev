@@ -120,6 +120,40 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     }
   };
 
+  const handleKbConfirm = async (messageId: string, decision: 'confirm' | 'cancel') => {
+    try {
+      const res = await fetch('/api/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messageId,
+          action: decision === 'confirm' ? 'confirm_delete' : 'cancel_delete',
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Gagal memproses konfirmasi penghapusan.');
+      }
+      const data = await res.json();
+
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId || !m.response_payload) return m;
+          try {
+            const payload: AssistantResponsePayload = JSON.parse(m.response_payload);
+            if (payload.kb_confirm) payload.kb_confirm.status = data.kb_confirm;
+            return { ...m, response_payload: JSON.stringify(payload) };
+          } catch {
+            return m;
+          }
+        })
+      );
+    } catch (err: any) {
+      console.error('KB confirm error:', err);
+      setErrorMessage(err?.message || 'Gagal memproses konfirmasi penghapusan.');
+    }
+  };
+
   const handleSendMessage = async (content: string, attachments: PendingAttachment[]) => {
     setSelectedPrompt('');
     setErrorMessage(null);
@@ -311,7 +345,12 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
         ) : (
           <div className="py-4 space-y-1.5 flex-1">
             {messages.map((msg) => (
-              <MessageItem key={msg.id} message={msg} onKbAction={handleKbAction} />
+              <MessageItem
+                key={msg.id}
+                message={msg}
+                onKbAction={handleKbAction}
+                onKbConfirm={handleKbConfirm}
+              />
             ))}
 
             {/* WhatsApp Typing Bubble Indicator with Natural Portrait */}

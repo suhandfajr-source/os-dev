@@ -8,7 +8,10 @@ import {
   addAttachment,
   updateConversationTitle,
   searchKnowledge,
+  getKnowledgeEntries,
+  findKnowledgeEntriesByName,
 } from '@/lib/db';
+import { parseKbCommand, KbCommand } from '@/lib/kb/commands';
 import { getAIProvider } from '@/lib/ai/provider';
 import { buildSystemPrompt } from '@/lib/ai/prompt-builder';
 import { AIMessage } from '@/lib/ai/types';
@@ -18,6 +21,89 @@ import { generateConceptIllustration } from '@/lib/ai/image-generator';
 import fs from 'fs';
 
 export const runtime = 'nodejs';
+
+const KB_PERSONA = { name: 'Gib-run' };
+
+function kbPayload(markdown: string, extra?: Partial<AssistantResponsePayload>): string {
+  const payload: AssistantResponsePayload = {
+    persona: KB_PERSONA,
+    blocks: [{ type: 'markdown', content: markdown }],
+    ...extra,
+  };
+  return JSON.stringify(payload);
+}
+
+/**
+ * Handler perintah kelola KB (CAP-4) — tanpa panggilan AI.
+ * Return: Response | null (null = bukan perintah, lanjut ke AI).
+ */
+async function handleKbCommand(
+  command: KbCommand,
+  conversationId: string,
+  isFirstMessage: boolean,
+  rawContent: string
+): Promise<NextResponse | null> {
+  let markdown = '';
+  let extra: Partial<AssistantResponsePayload> | undefined;
+
+  if (command.action === 'list') {
+    const entries = await getKnowledgeEntries();
+    if (entries.length === 0) {
+      markdown =
+        '📦 Dokumentasi Tools kamu masih kosong nih.\n\nGini caranya: tanya aja ke sini tentang tools/library/konsep apa pun, nanti aku tawarkan buat disimpan — tinggal tekan **Simpan 📦**. Gratis, gak nambah kuota kok!';
+    } else {
+      markdown =
+        '📦 *Dokumentasi Tools kamu:*\n\n' +
+        entries.map((e) => `- *${e.name}* (${e.type}) — ${e.function_summary}`).join('\n') +
+        '\n\nMau lihat detail? Bilang aja _"lihat entri [nama]"_ ya!';
+    }
+  } else if (command.action === 'show') {
+    const matches = await findKnowledgeEntriesByName(command.name);
+    if (matches.length === 0) {
+      markdown = `Hmm, aku gak nemu entri *"${command.name}"* di dokumentasi kamu. Coba cek lagi ejaannya, atau lihat semua dengan bilang _"tools apa aja yang gua simpan"_.`;
+    } else {
+      const e = matches[0];
+      markdown =
+        `📦 *${e.name}* (${e.type})\n\n` +
+        `*Fungsi:* ${e.function_summary}\n\n` +
+        `*Kapan dipakai:* ${e.when_to_use}\n\n` +
+        `*Cara mulai:* ${e.how_to_start}`;
+    }
+  } else {
+    // delete — selalu minta konfirmasi ulang lewat chips (CAP-4)
+    const matches = await findKnowledgeEntriesByName(command.name);
+    if (matches.length === 0) {
+      markdown = `Aku gak nemu entri *"${command.name}"* yang mau kamu hapus. Coba cek lagi nama-nya ya, atau bilang _"tools apa aja yang gua simpan"_ buat lihat daftar-nya.`;
+    } else {
+      const target = matches[0];
+      extra = {
+        kb_confirm: { action: 'delete', entry_id: target.id, name: target.name, status: 'pending' },
+      };
+      markdown = `Yakin mau hapus *"${target.name}"* dari dokumentasi kamu?\n\nEntri ini bakal ilang permanen loh — tekan konfirmasi di bawah kalau memang serius. 🗑️`;
+    }
+  }
+
+  const assistantMessageId = crypto.randomUUID();
+  const assistantMessage = await addMessage(
+    assistantMessageId,
+    conversationId,
+    'assistant',
+    markdown,
+    `Persona: ${KB_PERSONA.name}`,
+    kbPayload(markdown, extra)
+  );
+
+  if (isFirstMessage) {
+    await updateConversationTitle(conversationId, rawContent.slice(0, 30) || 'Percakapan Baru');
+  }
+
+  return NextResponse.json({
+    conversationId,
+    message: assistantMessage,
+    personaName: KB_PERSONA.name,
+    autoTitle: undefined,
+  });
+}
 
 interface IncomingAttachment {
   filename: string;
@@ -80,6 +166,13 @@ export async function POST(req: NextRequest) {
     const messages = updatedConv?.messages || [];
 
     const provider = getAIProvider();
+
+    // 4b. Perintah kelola KB (list/show/delete) — ditangani lokal, tanpa kuota AI (CAP-4)
+    const kbCommand = content ? parseKbCommand(content) : null;
+    if (kbCommand) {
+      const kbResponse = await handleKbCommand(kbCommand, conversationId, isFirstMessage, content);
+      if (kbResponse) return kbResponse;
+    }
 
     // 5. Build Single-Pass System Prompt (incorporating Assistant Brief + KB revision context)
     let behaviorContext: string | null = null;

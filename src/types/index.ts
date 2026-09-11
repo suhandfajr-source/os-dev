@@ -61,6 +61,7 @@ export interface AssistantResponsePayload {
   knowledge_entry?: PendingKnowledgeEntry;
   knowledge_status?: 'pending' | 'saved' | 'skipped';
   knowledge_id?: string;
+  knowledge_updated?: boolean;
   kb_confirm?: KbConfirmDelete;
 }
 

@@ -396,6 +396,19 @@ export async function createKnowledgeEntry(
   return mapKnowledgeRow(res.rows[0]);
 }
 
+export async function updateKnowledgeEntry(
+  id: string,
+  entry: { type: string; name: string; function_summary: string; when_to_use: string; how_to_start: string }
+): Promise<KnowledgeEntry> {
+  await ensureDbInitialized();
+  await client.execute({
+    sql: `UPDATE knowledge_entries SET type = ?, name = ?, function_summary = ?, when_to_use = ?, how_to_start = ?, updated_at = datetime('now') WHERE id = ?`,
+    args: [entry.type, entry.name, entry.function_summary, entry.when_to_use, entry.how_to_start, id],
+  });
+  const res = await client.execute({ sql: `SELECT * FROM knowledge_entries WHERE id = ?`, args: [id] });
+  return mapKnowledgeRow(res.rows[0]);
+}
+
 export async function searchKnowledge(query: string, limit: number = 3): Promise<KnowledgeEntry[]> {
   if (!query || query.trim().length === 0) return [];
   await ensureDbInitialized();

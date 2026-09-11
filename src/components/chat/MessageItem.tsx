@@ -15,9 +15,10 @@ interface MessageItemProps {
     action: 'save' | 'skip' | 'edit',
     entry: PendingKnowledgeEntry
   ) => void;
+  onKbConfirm?: (messageId: string, decision: 'confirm' | 'cancel') => void;
 }
 
-export const MessageItem: React.FC<MessageItemProps> = ({ message, onKbAction }) => {
+export const MessageItem: React.FC<MessageItemProps> = ({ message, onKbAction, onKbConfirm }) => {
   const isUser = message.role === 'user';
   const { profile } = useUserProfile();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -150,8 +151,18 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, onKbAction })
             <KnowledgeChips
               status={parsedPayload.knowledge_status ?? 'pending'}
               entry={parsedPayload.knowledge_entry}
+              updated={parsedPayload.knowledge_updated}
               disabled={!onKbAction}
               onAction={(action) => onKbAction?.(message.id, action, parsedPayload!.knowledge_entry!)}
+            />
+          )}
+
+          {/* KB Delete Confirmation Chips (CAP-4) */}
+          {!isUser && parsedPayload?.kb_confirm && (
+            <DeleteConfirmChips
+              confirm={parsedPayload.kb_confirm}
+              disabled={!onKbConfirm}
+              onDecide={(decision) => onKbConfirm?.(message.id, decision)}
             />
           )}
 
@@ -205,18 +216,19 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, onKbAction })
 interface KnowledgeChipsProps {
   status: 'pending' | 'saved' | 'skipped';
   entry: PendingKnowledgeEntry;
+  updated?: boolean;
   disabled?: boolean;
   onAction: (action: 'save' | 'skip' | 'edit') => void;
 }
 
-const KnowledgeChips: React.FC<KnowledgeChipsProps> = ({ status, entry, disabled, onAction }) => {
+const KnowledgeChips: React.FC<KnowledgeChipsProps> = ({ status, entry, updated, disabled, onAction }) => {
   if (status === 'skipped') return null;
 
   if (status === 'saved') {
     return (
       <div className="mt-2 flex items-center gap-1.5">
         <span className="inline-flex items-center gap-1 text-[11px] text-[#25d366] bg-[#111b21] border border-[#25d366]/30 rounded-full px-2.5 py-1 select-none">
-          📦 Tersimpan ke Dokumentasi
+          📦 {updated ? 'Diperbarui di Dokumentasi' : 'Tersimpan ke Dokumentasi'}
         </span>
       </div>
     );
@@ -250,6 +262,51 @@ const KnowledgeChips: React.FC<KnowledgeChipsProps> = ({ status, entry, disabled
         className="text-[11px] text-[#8696a0] hover:text-[#e9edef] bg-transparent hover:bg-[#2a3942] rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
         Skip
+      </button>
+    </div>
+  );
+};
+
+/* ============ KB Delete Confirmation Chips (CAP-4) ============ */
+
+interface DeleteConfirmChipsProps {
+  confirm: NonNullable<AssistantResponsePayload['kb_confirm']>;
+  disabled?: boolean;
+  onDecide: (decision: 'confirm' | 'cancel') => void;
+}
+
+const DeleteConfirmChips: React.FC<DeleteConfirmChipsProps> = ({ confirm, disabled, onDecide }) => {
+  const status = confirm.status ?? 'pending';
+
+  if (status === 'cancelled') return null;
+
+  if (status === 'confirmed') {
+    return (
+      <div className="mt-2 flex items-center gap-1.5">
+        <span className="inline-flex items-center gap-1 text-[11px] text-[#f15c6d] bg-[#111b21] border border-[#f15c6d]/30 rounded-full px-2.5 py-1 select-none">
+          🗑️ "{confirm.name}" terhapus dari Dokumentasi
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 pt-2 border-t border-[#2a3942]/60 flex flex-wrap items-center gap-1.5">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onDecide('confirm')}
+        className="text-[11px] font-medium text-[#f15c6d] bg-[#111b21] hover:bg-[#f15c6d]/20 border border-[#f15c6d]/40 rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        🗑️ Ya, Hapus
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onDecide('cancel')}
+        className="text-[11px] text-[#8696a0] hover:text-[#e9edef] bg-transparent hover:bg-[#2a3942] rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Batal
       </button>
     </div>
   );
