@@ -16,7 +16,7 @@ export const ResponseBlocksRenderer: React.FC<ResponseBlocksRendererProps> = ({ 
   if (!blocks || blocks.length === 0) return null;
 
   return (
-    <div className="space-y-3.5 text-[#e9edef]">
+    <div className="space-y-3.5 text-[#111b21]">
       {blocks.map((block, index) => {
         switch (block.type) {
           case 'markdown':
@@ -28,14 +28,14 @@ export const ResponseBlocksRenderer: React.FC<ResponseBlocksRendererProps> = ({ 
             return (
               <div key={index} className="my-3 max-w-lg">
                 {hasVisual && !block.failed ? (
-                  <div className="bg-[#111b21] border border-[#2a3942] rounded-2xl overflow-hidden shadow-lg group transition-all hover:border-[#00a884]">
+                  <div className="bg-[#f0f2f5] border border-[#e9edef] rounded-2xl overflow-hidden shadow-sm group transition-all hover:border-[#008069]">
                     {/* Media Header Badge */}
-                    <div className="px-3 py-1.5 bg-[#182229] border-b border-[#222d34] flex items-center justify-between text-[11px] text-[#8696a0]">
-                      <span className="flex items-center gap-1.5 font-medium text-[#25d366]">
+                    <div className="px-3.5 py-2 bg-[#f8fafc] border-b border-[#e9edef] flex items-center justify-between text-[11px] text-[#667781]">
+                      <span className="flex items-center gap-1.5 font-semibold text-[#008069]">
                         <ImageIcon className="w-3.5 h-3.5" />
                         Media Ilustrasi Analogi
                       </span>
-                      <span>Vektor SVG</span>
+                      <span className="text-[10px] bg-[#e2e8f0] text-[#475569] px-2 py-0.5 rounded-full font-medium">Vektor SVG</span>
                     </div>
 
                     {/* Media Body */}
@@ -48,7 +48,7 @@ export const ResponseBlocksRenderer: React.FC<ResponseBlocksRendererProps> = ({ 
                       <button
                         type="button"
                         onClick={() => setSelectedImage(block.imageUrl!)}
-                        className="block w-full text-left relative overflow-hidden bg-[#0b141a] p-1.5"
+                        className="block w-full text-left relative overflow-hidden bg-[#0b141a] p-1.5 cursor-pointer"
                       >
                         <img
                           src={block.imageUrl}
@@ -64,20 +64,20 @@ export const ResponseBlocksRenderer: React.FC<ResponseBlocksRendererProps> = ({ 
 
                     {/* Media Caption Footer */}
                     {block.caption && (
-                      <div className="p-2.5 bg-[#182229] border-t border-[#222d34] text-xs text-[#d1d7db] flex items-start gap-2">
-                        <Sparkles className="w-4 h-4 text-[#25d366] flex-shrink-0 mt-0.5" />
-                        <span className="leading-snug">{block.caption}</span>
+                      <div className="p-2.5 bg-[#f8fafc] border-t border-[#e9edef] text-xs text-[#475569] flex items-start gap-2">
+                        <Sparkles className="w-4 h-4 text-[#008069] flex-shrink-0 mt-0.5" />
+                        <span className="leading-snug font-medium">{block.caption}</span>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="p-3 rounded-xl bg-[#111b21] border border-[#2a3942] text-xs text-[#8696a0] flex items-start gap-2.5">
-                    <ImageOff className="w-4 h-4 text-[#8696a0] mt-0.5 flex-shrink-0" />
+                  <div className="p-3 rounded-xl bg-[#f0f2f5] border border-[#e9edef] text-xs text-[#667781] flex items-start gap-2.5">
+                    <ImageOff className="w-4 h-4 text-[#667781] mt-0.5 flex-shrink-0" />
                     <div>
-                      <div className="font-medium text-[#d1d7db]">
+                      <div className="font-semibold text-[#111b21]">
                         {block.caption || block.alt || 'Visualisasi Analogi'}
                       </div>
-                      <div className="text-[11px] text-[#8696a0] mt-0.5">
+                      <div className="text-[11px] text-[#667781] mt-0.5">
                         (Konsep visual dijelaskan pada teks di bawah)
                       </div>
                     </div>
@@ -92,7 +92,7 @@ export const ResponseBlocksRenderer: React.FC<ResponseBlocksRendererProps> = ({ 
               <div key={index} className="my-2.5">
                 <MermaidDiagram chart={block.code} />
                 {block.caption && (
-                  <div className="text-center text-xs text-[#8696a0] mt-1 italic">
+                  <div className="text-center text-xs text-[#667781] mt-1 font-medium italic">
                     {block.caption}
                   </div>
                 )}
@@ -103,16 +103,16 @@ export const ResponseBlocksRenderer: React.FC<ResponseBlocksRendererProps> = ({ 
             return (
               <div
                 key={index}
-                className="my-2.5 p-3 rounded-xl bg-[#182229] border border-[#2a3942] text-sm shadow-sm flex items-start gap-2.5"
+                className="my-2.5 p-3.5 rounded-xl bg-[#fffbeb] border border-[#fde68a] text-sm shadow-sm flex items-start gap-3"
               >
-                <div className="p-1.5 rounded-lg bg-[#2a3942]/60 text-[#f59e0b] flex-shrink-0">
+                <div className="p-1.5 rounded-lg bg-[#fef3c7] text-[#d97706] flex-shrink-0 mt-0.5">
                   <Lightbulb className="w-4 h-4" />
                 </div>
                 <div className="flex-1">
-                  <div className="font-semibold text-[#f59e0b] text-[11px] uppercase tracking-wider mb-0.5">
+                  <div className="font-bold text-[#b45309] text-[11px] uppercase tracking-wider mb-0.5">
                     Tahukah Kamu? (Fun Fact)
                   </div>
-                  <div className="text-[#d1d7db] text-xs md:text-sm leading-relaxed">
+                  <div className="text-[#78350f] text-xs md:text-sm leading-relaxed">
                     {block.content}
                   </div>
                 </div>
@@ -123,19 +123,19 @@ export const ResponseBlocksRenderer: React.FC<ResponseBlocksRendererProps> = ({ 
             return (
               <div
                 key={index}
-                className="my-2.5 p-3.5 rounded-xl bg-[#182229] border border-[#2a3942] text-sm shadow-sm"
+                className="my-2.5 p-3.5 rounded-xl bg-[#eff6ff] border border-[#bfdbfe] text-sm shadow-sm"
               >
-                <div className="flex items-center gap-2 font-semibold text-[#53bdeb] text-xs uppercase tracking-wider mb-2">
-                  <PlayCircle className="w-4 h-4 text-[#53bdeb] flex-shrink-0" />
+                <div className="flex items-center gap-2 font-bold text-[#1d4ed8] text-xs uppercase tracking-wider mb-2">
+                  <PlayCircle className="w-4 h-4 text-[#2563eb] flex-shrink-0" />
                   <span>{block.title || 'Coba Sendiri di Terminal Kamu'}</span>
                 </div>
-                <ol className="space-y-1.5 text-[#d1d7db] text-xs md:text-sm">
+                <ol className="space-y-1.5 text-[#1e40af] text-xs md:text-sm">
                   {block.steps.map((step, sIdx) => (
                     <li key={sIdx} className="flex items-start gap-2">
-                      <span className="w-4.5 h-4.5 rounded-full bg-[#00a884]/20 text-[#25d366] border border-[#00a884]/40 flex items-center justify-center text-[11px] font-mono font-bold flex-shrink-0 mt-0.5">
+                      <span className="w-4.5 h-4.5 rounded-full bg-[#dbeafe] text-[#1d4ed8] border border-[#93c5fd] flex items-center justify-center text-[11px] font-mono font-bold flex-shrink-0 mt-0.5">
                         {sIdx + 1}
                       </span>
-                      <span className="flex-1 leading-relaxed">{step}</span>
+                      <span className="flex-1 leading-relaxed font-medium">{step}</span>
                     </li>
                   ))}
                 </ol>

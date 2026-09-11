@@ -159,12 +159,12 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     <div className="w-full max-w-5xl mx-auto">
       {/* Upload Error Banner */}
       {uploadError && (
-        <div className="mb-2 p-2 rounded-lg bg-[#3b171c] border border-[#f15c6d]/40 text-xs text-[#ffd5d9] flex items-center justify-between">
+        <div className="mb-2 p-2 rounded-lg bg-[#fee2e2] border border-[#fca5a5] text-xs text-[#991b1b] flex items-center justify-between shadow-sm">
           <span>{uploadError}</span>
           <button
             type="button"
             onClick={() => setUploadError(null)}
-            className="text-[#f15c6d] hover:text-white"
+            className="text-[#ef4444] hover:text-[#b91c1c] cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -173,11 +173,11 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 
       {/* Attachment Previews */}
       {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2.5 p-2.5 mb-2 bg-[#111b21] rounded-xl border border-[#2a3942]">
+        <div className="flex flex-wrap gap-2.5 p-2.5 mb-2 bg-[#ffffff] rounded-xl border border-[#e9edef] shadow-sm">
           {attachments.map((att, idx) => (
             <div
               key={idx}
-              className="relative group w-16 h-16 rounded-lg overflow-hidden border border-[#2a3942] bg-[#0b141a]"
+              className="relative group w-16 h-16 rounded-lg overflow-hidden border border-[#e9edef] bg-[#f0f2f5]"
             >
               <img
                 src={att.previewUrl}
@@ -187,7 +187,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               <button
                 type="button"
                 onClick={() => removeAttachment(idx)}
-                className="absolute top-1 right-1 p-0.5 bg-black/75 hover:bg-[#ea0038] text-white rounded-full transition-colors"
+                className="absolute top-1 right-1 p-0.5 bg-black/75 hover:bg-[#ea0038] text-white rounded-full transition-colors cursor-pointer"
                 title="Hapus foto"
               >
                 <X className="w-3 h-3" />
@@ -197,7 +197,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         </div>
       )}
 
-      {/* WhatsApp Composer Bar */}
+      {/* WhatsApp Composer Bar (Light Mode) */}
       <form
         onSubmit={handleSubmit}
         className="flex items-end gap-2"
@@ -217,18 +217,18 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isLoading || isUploading}
-          className="p-2.5 text-[#8696a0] hover:text-[#e9edef] hover:bg-[#374248] rounded-full transition-colors disabled:opacity-40 cursor-pointer flex-shrink-0 mb-0.5"
+          className="p-2.5 text-[#54656f] hover:text-[#111b21] hover:bg-[#e9edef] rounded-full transition-colors disabled:opacity-40 cursor-pointer flex-shrink-0 mb-0.5"
           title="Lampirkan foto/screenshot"
         >
           {isUploading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-[#00a884]" />
+            <Loader2 className="w-5 h-5 animate-spin text-[#008069]" />
           ) : (
             <Paperclip className="w-5 h-5 -rotate-45" />
           )}
         </button>
 
         {/* WhatsApp Pill Input Textarea */}
-        <div className="flex-1 bg-[#2a3942] rounded-xl px-3.5 py-2 flex items-center border border-transparent focus-within:border-[#00a884]/60 transition-colors">
+        <div className="flex-1 bg-[#ffffff] rounded-lg px-3.5 py-2 flex items-center border border-[#e9edef] focus-within:border-[#00a884] shadow-sm transition-all">
           <textarea
             ref={textareaRef}
             value={content}
@@ -236,7 +236,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             onKeyDown={handleKeyDown}
             placeholder="Ketik pesan..."
             rows={1}
-            className="w-full bg-transparent text-sm md:text-[15px] text-[#e9edef] placeholder-[#8696a0] resize-none focus:outline-none max-h-36 overflow-y-auto leading-relaxed"
+            className="w-full bg-transparent text-sm md:text-[15px] text-[#111b21] placeholder-[#8696a0] resize-none focus:outline-none max-h-36 overflow-y-auto leading-relaxed"
           />
         </div>
 
@@ -251,8 +251,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           disabled={!canSubmit}
           className={`w-10 h-10 rounded-full flex items-center justify-center shadow-md transition-all flex-shrink-0 mb-0.5 ${
             canSubmit
-              ? 'bg-[#00a884] hover:bg-[#02906f] active:scale-95 text-white cursor-pointer shadow-[#00a884]/20'
-              : 'bg-[#2a3942] text-[#8696a0] cursor-not-allowed opacity-50'
+              ? 'bg-[#008069] hover:bg-[#00a884] active:scale-95 text-white cursor-pointer shadow-sm'
+              : 'bg-[#e9edef] text-[#8696a0] cursor-not-allowed opacity-60'
           }`}
           title={canSubmit ? 'Kirim pesan' : 'Tulis pesan...'}
         >

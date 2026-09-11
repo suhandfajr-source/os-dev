@@ -62,6 +62,17 @@ export const AssistantResponseSchema = z.object({
   knowledge_entry: KnowledgeEntryContentSchema.optional(),
 });
 
+function detectPersonaFromBlocks(blocks: any[]): { id?: string; name: string; title?: string } {
+  const firstMd = blocks.find((b) => b.type === 'markdown')?.content || '';
+  if (/joke-wi|jokowi/i.test(firstMd)) return { id: 'joke-wi', name: 'Joke-Wi', title: 'Infrastruktur & Database' };
+  if (/pra-bow-wo|prabowo|pra-bow/i.test(firstMd)) return { id: 'pra-bow-wo', name: 'Pra-Bow Wo', title: 'Terminal CLI & Git' };
+  if (/luh-hut|luhut/i.test(firstMd)) return { id: 'luh-hut', name: 'Luh-Hut', title: 'Cloud & System Architecture' };
+  if (/mega-chan|megawati/i.test(firstMd)) return { id: 'mega-chan', name: 'Mega-Chan', title: 'Logika Dasar & Algoritma' };
+  if (/mah-fud|mahfud/i.test(firstMd)) return { id: 'mah-fud', name: 'Mah-Fud', title: 'Security & Clean Code' };
+  if (/an-ies|anies/i.test(firstMd)) return { id: 'an-ies', name: 'An-Ies', title: 'Design Patterns & Arsitektur' };
+  return { id: 'gib-run', name: 'Gib-run', title: 'Modern Web & API Sat-Set' };
+}
+
 /**
  * Validates raw LLM response text against the structured schema.
  * Safely handles markdown wrappers and malformed JSON.
@@ -81,22 +92,24 @@ export function parseAndValidateAssistantResponse(rawText: string): AssistantRes
     const parsed = JSON.parse(clean);
     const validation = AssistantResponseSchema.safeParse(parsed);
 
+    let payload: AssistantResponsePayload | null = null;
     if (validation.success) {
-      return validation.data as AssistantResponsePayload;
-    } else {
-      console.warn('Structured response validation warning:', validation.error.format());
-      // If blocks exists, construct a safe payload
-      if (Array.isArray(parsed.blocks) && parsed.blocks.length > 0) {
-        const entryCheck = KnowledgeEntryContentSchema.safeParse(parsed.knowledge_entry);
-        return {
-          persona: parsed.persona,
-          autoTitle: typeof parsed.autoTitle === 'string' ? parsed.autoTitle : undefined,
-          blocks: parsed.blocks,
-          knowledge_entry: entryCheck.success ? entryCheck.data : undefined,
-        };
-      }
-      return null;
+      payload = validation.data as AssistantResponsePayload;
+    } else if (Array.isArray(parsed.blocks) && parsed.blocks.length > 0) {
+      const entryCheck = KnowledgeEntryContentSchema.safeParse(parsed.knowledge_entry);
+      payload = {
+        persona: parsed.persona,
+        autoTitle: typeof parsed.autoTitle === 'string' ? parsed.autoTitle : undefined,
+        blocks: parsed.blocks,
+        knowledge_entry: entryCheck.success ? entryCheck.data : undefined,
+      };
     }
+
+    if (payload && (!payload.persona || !payload.persona.name || payload.persona.name.toLowerCase() === 'assistant')) {
+      payload.persona = detectPersonaFromBlocks(payload.blocks);
+    }
+
+    return payload;
   } catch (err) {
     console.warn('Could not parse JSON from LLM output for structured response:', err);
     return null;

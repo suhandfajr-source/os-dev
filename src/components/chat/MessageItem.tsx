@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Message, AssistantResponsePayload, PendingKnowledgeEntry } from '@/types';
-import { Sparkles, CheckCheck, X, User } from 'lucide-react';
+import { Sparkles, CheckCheck, X, User, Star } from 'lucide-react';
 import { MarkdownRenderer } from '../markdown/MarkdownRenderer';
 import { ResponseBlocksRenderer } from './ResponseBlocksRenderer';
 import { getPersonaDetails } from '@/lib/personas';
@@ -12,7 +12,7 @@ interface MessageItemProps {
   message: Message;
   onKbAction?: (
     messageId: string,
-    action: 'save' | 'skip' | 'edit',
+    action: 'save' | 'skip' | 'edit' | 'unstar',
     entry: PendingKnowledgeEntry
   ) => void;
   onKbConfirm?: (messageId: string, decision: 'confirm' | 'cancel') => void;
@@ -46,6 +46,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, onKbAction, o
     hour: '2-digit',
     minute: '2-digit',
   });
+
+  const isStarred = parsedPayload?.knowledge_status === 'saved';
 
   return (
     <div
@@ -81,27 +83,62 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, onKbAction, o
           )}
         </div>
 
-        {/* WhatsApp Group Chat Bubble */}
+        {/* WhatsApp Group Chat Bubble (Light Mode) */}
         <div
-          className={`relative rounded-2xl shadow-sm text-left transition-all ${
+          className={`relative rounded-2xl shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] text-left transition-all ${
             isUser
-              ? 'bg-[#005c4b] text-[#e9edef] rounded-tr-xs px-3.5 pt-2.5 pb-2 border border-[#005c4b]'
-              : 'bg-[#202c33] text-[#e9edef] rounded-tl-xs px-4 pt-3 pb-2.5 border border-[#2a3942]'
+              ? 'bg-[#d9fdd3] text-[#111b21] rounded-tr-xs px-3.5 pt-2.5 pb-2 border border-[#b8f5ae]'
+              : 'bg-[#ffffff] text-[#111b21] rounded-tl-xs px-4 pt-3 pb-2.5 border border-[#e9edef]'
           }`}
         >
-          {/* Persona Header for Assistant in WhatsApp Group Style */}
+          {/* Persona Header for Assistant in WhatsApp Group Style with Top-Right Star */}
           {!isUser && (
-            <div className="flex items-center gap-2 mb-1.5 pb-1 border-b border-[#2a3942]/60 flex-wrap">
-              <span
-                className="text-xs font-bold tracking-wide flex items-center gap-1"
-                style={{ color: persona.color }}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                ~ {persona.name}
-              </span>
-              <span className="text-[10px] text-[#8696a0] font-normal bg-[#111b21] px-1.5 py-0.5 rounded border border-[#2a3942]/50">
-                {persona.title}
-              </span>
+            <div className="flex items-center justify-between gap-3 mb-2 pb-1.5 border-b border-[#e9edef]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className="text-xs font-bold tracking-wide flex items-center gap-1"
+                  style={{ color: persona.color }}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  ~ {persona.name}
+                </span>
+                <span className="text-[10px] text-[#54656f] font-medium bg-[#f0f2f5] px-2 py-0.5 rounded-full border border-[#e9edef]">
+                  {persona.title}
+                </span>
+              </div>
+
+              {/* Starred Tool Button in Top-Right Header */}
+              {parsedPayload?.knowledge_entry && (
+                <button
+                  type="button"
+                  disabled={!onKbAction}
+                  onClick={() => {
+                    if (!parsedPayload?.knowledge_entry) return;
+                    onKbAction?.(
+                      message.id,
+                      isStarred ? 'unstar' : 'save',
+                      parsedPayload.knowledge_entry
+                    );
+                  }}
+                  className={`group flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold transition-all select-none border cursor-pointer ${
+                    isStarred
+                      ? 'bg-[#d9fdd3] text-[#008069] border-[#008069]/40 hover:bg-[#c3f4bc] shadow-sm'
+                      : 'bg-[#f0f2f5] text-[#54656f] border-[#e9edef] hover:text-[#008069] hover:border-[#008069]/30 hover:bg-[#e9edef]'
+                  }`}
+                  title={
+                    isStarred
+                      ? `Tersimpan di Starred Tools ("${parsedPayload.knowledge_entry.name}"). Klik untuk membatalkan.`
+                      : `Beri Bintang / Simpan "${parsedPayload.knowledge_entry.name}" ke Starred Tools`
+                  }
+                >
+                  <Star
+                    className={`w-3.5 h-3.5 transition-transform group-hover:scale-110 active:scale-95 ${
+                      isStarred ? 'fill-[#008069] text-[#008069]' : 'text-[#54656f] group-hover:text-[#008069]'
+                    }`}
+                  />
+                  <span>{isStarred ? 'Starred' : 'Star'}</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -117,7 +154,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, onKbAction, o
                     key={att.id}
                     type="button"
                     onClick={() => setSelectedImage(src)}
-                    className="relative group rounded-xl overflow-hidden border border-[#111b21] bg-[#111b21] hover:border-[#00a884] transition-all"
+                    className="relative group rounded-xl overflow-hidden border border-[#e9edef] bg-[#f0f2f5] hover:border-[#00a884] transition-all"
                   >
                     <img
                       src={src}
@@ -135,26 +172,15 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, onKbAction, o
 
           {/* Message Content */}
           {isUser ? (
-            <div className="text-sm md:text-[15px] whitespace-pre-wrap leading-relaxed">
+            <div className="text-sm md:text-[15px] whitespace-pre-wrap leading-relaxed text-[#111b21]">
               {message.content}
             </div>
           ) : parsedPayload?.blocks && parsedPayload.blocks.length > 0 ? (
             <ResponseBlocksRenderer blocks={parsedPayload.blocks} />
           ) : (
-            <div className="text-[#e9edef] text-sm md:text-[15px]">
+            <div className="text-[#111b21] text-sm md:text-[15px]">
               <MarkdownRenderer content={message.content} />
             </div>
-          )}
-
-          {/* Knowledge Base Chips (Dokumentasi Tools) */}
-          {!isUser && parsedPayload?.knowledge_entry && (
-            <KnowledgeChips
-              status={parsedPayload.knowledge_status ?? 'pending'}
-              entry={parsedPayload.knowledge_entry}
-              updated={parsedPayload.knowledge_updated}
-              disabled={!onKbAction}
-              onAction={(action) => onKbAction?.(message.id, action, parsedPayload!.knowledge_entry!)}
-            />
           )}
 
           {/* KB Delete Confirmation Chips (CAP-4) */}
@@ -169,10 +195,10 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, onKbAction, o
           {/* Timestamp & Double Blue Check for WhatsApp Experience */}
           <div
             className={`flex items-center gap-1 mt-1.5 select-none ${
-              isUser ? 'justify-end' : 'justify-end text-[#8696a0]'
+              isUser ? 'justify-end' : 'justify-end text-[#667781]'
             }`}
           >
-            <span className="text-[11px] text-[#8696a0] leading-none">
+            <span className="text-[11px] text-[#667781] leading-none">
               {formattedTime}
             </span>
 
@@ -195,7 +221,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, onKbAction, o
           <div className="relative max-w-4xl max-h-[90vh] overflow-hidden">
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute top-3 right-3 p-2 bg-[#202c33] hover:bg-[#2a3942] text-white rounded-full transition-colors z-10"
+              className="absolute top-3 right-3 p-2 bg-[#ffffff] hover:bg-[#e9edef] text-[#111b21] rounded-full transition-colors z-10 shadow-lg cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -207,62 +233,6 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, onKbAction, o
           </div>
         </div>
       )}
-    </div>
-  );
-};
-
-/* ============ Knowledge Base Chips (Dokumentasi Tools) ============ */
-
-interface KnowledgeChipsProps {
-  status: 'pending' | 'saved' | 'skipped';
-  entry: PendingKnowledgeEntry;
-  updated?: boolean;
-  disabled?: boolean;
-  onAction: (action: 'save' | 'skip' | 'edit') => void;
-}
-
-const KnowledgeChips: React.FC<KnowledgeChipsProps> = ({ status, entry, updated, disabled, onAction }) => {
-  if (status === 'skipped') return null;
-
-  if (status === 'saved') {
-    return (
-      <div className="mt-2 flex items-center gap-1.5">
-        <span className="inline-flex items-center gap-1 text-[11px] text-[#25d366] bg-[#111b21] border border-[#25d366]/30 rounded-full px-2.5 py-1 select-none">
-          📦 {updated ? 'Diperbarui di Dokumentasi' : 'Tersimpan ke Dokumentasi'}
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-2 pt-2 border-t border-[#2a3942]/60 flex flex-wrap items-center gap-1.5">
-      <span className="text-[10px] text-[#8696a0] mr-0.5 select-none truncate max-w-[140px]" title={entry.name}>
-        📦 Simpan <span className="font-medium text-[#e9edef]">{entry.name}</span>?
-      </span>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onAction('save')}
-        className="text-[11px] font-medium text-[#25d366] bg-[#111b21] hover:bg-[#00a884]/20 border border-[#25d366]/40 rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        Simpan 📦
-      </button>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onAction('edit')}
-        className="text-[11px] font-medium text-[#e9edef] bg-[#111b21] hover:bg-[#2a3942] border border-[#2a3942] rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        ✏️ Edit
-      </button>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onAction('skip')}
-        className="text-[11px] text-[#8696a0] hover:text-[#e9edef] bg-transparent hover:bg-[#2a3942] rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        Skip
-      </button>
     </div>
   );
 };
@@ -283,7 +253,7 @@ const DeleteConfirmChips: React.FC<DeleteConfirmChipsProps> = ({ confirm, disabl
   if (status === 'confirmed') {
     return (
       <div className="mt-2 flex items-center gap-1.5">
-        <span className="inline-flex items-center gap-1 text-[11px] text-[#f15c6d] bg-[#111b21] border border-[#f15c6d]/30 rounded-full px-2.5 py-1 select-none">
+        <span className="inline-flex items-center gap-1 text-[11px] text-[#dc2626] bg-[#fee2e2] border border-[#fca5a5] rounded-full px-2.5 py-1 select-none font-medium">
           🗑️ "{confirm.name}" terhapus dari Dokumentasi
         </span>
       </div>
@@ -291,12 +261,12 @@ const DeleteConfirmChips: React.FC<DeleteConfirmChipsProps> = ({ confirm, disabl
   }
 
   return (
-    <div className="mt-2 pt-2 border-t border-[#2a3942]/60 flex flex-wrap items-center gap-1.5">
+    <div className="mt-2 pt-2 border-t border-[#e9edef] flex flex-wrap items-center gap-1.5">
       <button
         type="button"
         disabled={disabled}
         onClick={() => onDecide('confirm')}
-        className="text-[11px] font-medium text-[#f15c6d] bg-[#111b21] hover:bg-[#f15c6d]/20 border border-[#f15c6d]/40 rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="text-[11px] font-semibold text-[#dc2626] bg-[#fee2e2] hover:bg-[#fecaca] border border-[#fca5a5] rounded-full px-3 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
       >
         🗑️ Ya, Hapus
       </button>
@@ -304,7 +274,7 @@ const DeleteConfirmChips: React.FC<DeleteConfirmChipsProps> = ({ confirm, disabl
         type="button"
         disabled={disabled}
         onClick={() => onDecide('cancel')}
-        className="text-[11px] text-[#8696a0] hover:text-[#e9edef] bg-transparent hover:bg-[#2a3942] rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="text-[11px] text-[#54656f] hover:text-[#111b21] bg-transparent hover:bg-[#f0f2f5] rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
       >
         Batal
       </button>

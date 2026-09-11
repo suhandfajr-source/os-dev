@@ -6,6 +6,8 @@ import {
   createKnowledgeEntry,
   updateKnowledgeEntry,
   findKnowledgeEntriesByName,
+  getKnowledgeEntries,
+  searchKnowledge,
   deleteKnowledgeEntry,
 } from '@/lib/db';
 import { AssistantResponsePayload } from '@/types';
@@ -13,6 +15,56 @@ import { AssistantResponsePayload } from '@/types';
 export const runtime = 'nodejs';
 
 const normalizeName = (s: string) => (s || '').trim().toLowerCase();
+
+/**
+ * GET /api/knowledge
+ * Mengambil daftar entri knowledge base / tools berbintang.
+ * Query param (opsional): q (search query)
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const query = searchParams.get('q');
+
+    if (query && query.trim().length > 0) {
+      const results = await searchKnowledge(query.trim(), 20);
+      return NextResponse.json({ entries: results });
+    }
+
+    const entries = await getKnowledgeEntries();
+    return NextResponse.json({ entries });
+  } catch (err: any) {
+    console.error('Error fetching knowledge entries:', err);
+    return NextResponse.json(
+      { error: err?.message || 'Gagal mengambil data knowledge base.' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/knowledge?id=xxx
+ * Menghapus satu entri knowledge base langsung dari drawer.
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Parameter id wajib diisi.' }, { status: 400 });
+    }
+
+    await deleteKnowledgeEntry(id);
+    return NextResponse.json({ ok: true, deletedId: id });
+  } catch (err: any) {
+    console.error('Error deleting knowledge entry:', err);
+    return NextResponse.json(
+      { error: err?.message || 'Gagal menghapus entri.' },
+      { status: 500 }
+    );
+  }
+}
 
 /**
  * POST /api/knowledge
@@ -28,9 +80,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { messageId, action } = body || {};
 
-    if (!messageId || !['save', 'skip', 'confirm_delete', 'cancel_delete'].includes(action)) {
+    if (!messageId || !['save', 'skip', 'unstar', 'confirm_delete', 'cancel_delete'].includes(action)) {
       return NextResponse.json(
-        { error: 'messageId dan action (save|skip|confirm_delete|cancel_delete) wajib diisi.' },
+        { error: 'messageId dan action (save|skip|unstar|confirm_delete|cancel_delete) wajib diisi.' },
         { status: 400 }
       );
     }
@@ -46,8 +98,6 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ error: 'Payload pesan tidak valid.' }, { status: 400 });
     }
-
-    const currentStatus = payload.knowledge_status ?? (payload.knowledge_entry ? 'pending' : null);
 
     if (action === 'confirm_delete' || action === 'cancel_delete') {
       const confirm = payload.kb_confirm;
@@ -67,14 +117,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, action, kb_confirm: confirm.status });
     }
 
-    if (currentStatus && currentStatus !== 'pending') {
-      return NextResponse.json({ error: 'Entri ini sudah diproses sebelumnya.' }, { status: 409 });
-    }
     if (!payload.knowledge_entry) {
       return NextResponse.json({ error: 'Pesan ini tidak memuat usulan entri knowledge base.' }, { status: 400 });
     }
 
-    if (action === 'save') {
+    if (action === 'unstar') {
+      if (payload.knowledge_id) {
+        await deleteKnowledgeEntry(payload.knowledge_id);
+      } else {
+        const existing = await findKnowledgeEntriesByName(payload.knowledge_entry.name);
+        const dup = existing.find(
+          (e) => normalizeName(e.name) === normalizeName(payload.knowledge_entry!.name)
+        );
+        if (dup) {
+          await deleteKnowledgeEntry(dup.id);
+        }
+      }
+      payload.knowledge_status = 'pending';
+      payload.knowledge_id = undefined;
+      payload.knowledge_updated = undefined;
+    } else if (action === 'save') {
       // CAP-5: nama yang sudah ada → update entri lama, bukan duplikat
       const existing = await findKnowledgeEntriesByName(payload.knowledge_entry.name);
       const dup = existing.find(
@@ -115,3 +177,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

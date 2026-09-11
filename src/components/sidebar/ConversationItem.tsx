@@ -96,20 +96,20 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   return (
     <div className="relative group">
       {isEditing ? (
-        <div className="flex items-center gap-1.5 p-2 bg-[#202c33] rounded-lg border border-[#00a884]">
+        <div className="flex items-center gap-1.5 p-2 bg-[#ffffff] rounded-lg border border-[#00a884] shadow-sm">
           <input
             ref={inputRef}
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full bg-transparent text-sm text-[#e9edef] focus:outline-none"
+            className="w-full bg-transparent text-sm text-[#111b21] focus:outline-none"
             disabled={isSubmitting}
           />
           <button
             onClick={handleSaveRename}
             disabled={isSubmitting}
-            className="p-1 text-[#25d366] hover:text-[#00a884]"
+            className="p-1 text-[#008069] hover:text-[#00a884] cursor-pointer"
             title="Simpan"
           >
             <Check className="w-3.5 h-3.5" />
@@ -120,7 +120,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
               setTitle(conversation.title);
             }}
             disabled={isSubmitting}
-            className="p-1 text-[#8696a0] hover:text-white"
+            className="p-1 text-[#667781] hover:text-[#111b21] cursor-pointer"
             title="Batal"
           >
             <X className="w-3.5 h-3.5" />
@@ -130,8 +130,8 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
         <div
           className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors cursor-pointer ${
             isActive
-              ? 'bg-[#2a3942] text-[#e9edef]'
-              : 'text-[#d1d7db] hover:bg-[#202c33]'
+              ? 'bg-[#f0f2f5] text-[#111b21] font-medium'
+              : 'text-[#111b21] hover:bg-[#f5f6f6]'
           }`}
         >
           <Link
@@ -145,14 +145,14 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
 
             <div className="min-w-0 flex-1 pr-1">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-[14px] text-[#e9edef] truncate">
+                <span className="font-semibold text-[14px] text-[#111b21] truncate">
                   {conversation.title}
                 </span>
-                <span className="text-[11px] text-[#8696a0] flex-shrink-0 ml-1">
+                <span className="text-[11px] text-[#667781] flex-shrink-0 ml-1">
                   {formattedDate}
                 </span>
               </div>
-              <div className="flex items-center gap-1 text-xs text-[#8696a0] mt-0.5 truncate">
+              <div className="flex items-center gap-1 text-xs text-[#667781] mt-0.5 truncate">
                 <CheckCheck className="w-3.5 h-3.5 text-[#53bdeb] flex-shrink-0" />
                 <span className="truncate">Obrolan Vibe Coding</span>
               </div>
@@ -167,14 +167,14 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
                 e.stopPropagation();
                 setMenuOpen(!menuOpen);
               }}
-              className="p-1 rounded-full text-[#8696a0] hover:text-[#e9edef] hover:bg-[#374248] transition-colors"
+              className="p-1 rounded-full text-[#667781] hover:text-[#111b21] hover:bg-[#e9edef] transition-colors cursor-pointer"
               title="Opsi Obrolan"
             >
               <MoreVertical className="w-4 h-4" />
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-36 bg-[#233138] border border-[#2a3942] rounded-lg shadow-2xl py-1 z-30">
+              <div className="absolute right-0 top-full mt-1 w-36 bg-[#ffffff] border border-[#e9edef] rounded-lg shadow-xl py-1 z-30">
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -182,9 +182,9 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
                     setMenuOpen(false);
                     setIsEditing(true);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#e9edef] hover:bg-[#182229] text-left"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#111b21] hover:bg-[#f0f2f5] text-left cursor-pointer"
                 >
-                  <Edit2 className="w-3.5 h-3.5 text-[#53bdeb]" />
+                  <Edit2 className="w-3.5 h-3.5 text-[#008069]" />
                   Ganti Nama
                 </button>
                 <button
@@ -194,7 +194,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
                     setMenuOpen(false);
                     setShowDeleteConfirm(true);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#f15c6d] hover:bg-[#3b171c]/40 text-left"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#dc2626] hover:bg-[#fee2e2] text-left cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Hapus Obrolan
@@ -205,20 +205,20 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal (Light Mode) */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="bg-[#202c33] border border-[#2a3942] rounded-xl p-5 max-w-sm w-full shadow-2xl space-y-4">
-            <h3 className="text-base font-semibold text-[#e9edef]">Hapus Obrolan ini?</h3>
-            <p className="text-sm text-[#8696a0]">
-              Obrolan &quot;<span className="text-[#e9edef] font-medium">{conversation.title}</span>&quot; beserta seluruh riwayat pesan akan dihapus.
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-[#ffffff] border border-[#e9edef] rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-[#111b21]">Hapus Obrolan ini?</h3>
+            <p className="text-sm text-[#54656f]">
+              Obrolan &quot;<span className="text-[#111b21] font-semibold">{conversation.title}</span>&quot; beserta seluruh riwayat pesan akan dihapus permanen.
             </p>
             <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={isSubmitting}
-                className="px-3.5 py-1.5 text-xs font-medium text-[#8696a0] hover:text-[#e9edef] bg-[#111b21] hover:bg-[#2a3942] rounded-lg transition-colors"
+                className="px-3.5 py-1.5 text-xs font-semibold text-[#54656f] hover:text-[#111b21] bg-[#f0f2f5] hover:bg-[#e9edef] rounded-lg transition-colors cursor-pointer"
               >
                 Batal
               </button>
@@ -226,7 +226,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={isSubmitting}
-                className="px-3.5 py-1.5 text-xs font-medium text-white bg-[#ea0038] hover:bg-[#d00030] rounded-lg transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#dc2626] hover:bg-[#b91c1c] rounded-lg transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
               >
                 {isSubmitting ? 'Menghapus...' : 'Hapus'}
               </button>

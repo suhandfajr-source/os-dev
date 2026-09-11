@@ -2,22 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-/* WhatsApp Web Dark Mode Palette & Tokens */
+/* WhatsApp Web Light Mode Palette & Tokens */
 :root {
-  --wa-bg-deep: #0b141a;
-  --wa-bg-panel: #111b21;
-  --wa-header-bg: #202c33;
-  --wa-bubble-user: #005c4b;
-  --wa-bubble-ai: #202c33;
-  --wa-bubble-ai-border: #2a3942;
-  --wa-green-primary: #00a884;
-  --wa-green-accent: #25d366;
+  --wa-bg-deep: #efeae2;
+  --wa-bg-panel: #ffffff;
+  --wa-header-bg: #f0f2f5;
+  --wa-bubble-user: #d9fdd3;
+  --wa-bubble-ai: #ffffff;
+  --wa-bubble-ai-border: #e9edef;
+  --wa-green-primary: #008069;
+  --wa-green-accent: #00a884;
+  --wa-green-light: #25d366;
   --wa-blue-check: #53bdeb;
-  --wa-text-primary: #e9edef;
-  --wa-text-secondary: #8696a0;
-  --wa-text-muted: #667781;
-  --wa-input-bg: #2a3942;
-  --wa-border: #222d34;
+  --wa-text-primary: #111b21;
+  --wa-text-secondary: #54656f;
+  --wa-text-muted: #8696a0;
+  --wa-input-bg: #ffffff;
+  --wa-border: #e9edef;
 }
 
 * {
@@ -35,14 +36,14 @@ html, body {
   overflow: hidden;
 }
 
-/* WhatsApp Pattern Background */
+/* WhatsApp Classic Doodle Pattern Background */
 .wa-chat-bg {
-  background-color: #0b141a;
+  background-color: #efeae2;
   background-image: 
-    radial-gradient(#202c33 1px, transparent 1px),
-    radial-gradient(#111b21 1px, #0b141a 1px);
-  background-size: 40px 40px;
-  background-position: 0 0, 20px 20px;
+    radial-gradient(#d1c7b7 1.2px, transparent 1.2px),
+    radial-gradient(#e4ddd4 1.2px, #efeae2 1.2px);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
   background-attachment: fixed;
 }
 
@@ -65,7 +66,7 @@ aside {
   flex-shrink: 0;
 }
 
-/* Custom WhatsApp-style Scrollbars */
+/* Custom WhatsApp-style Scrollbars (Light Mode) */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -74,11 +75,11 @@ aside {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #374248;
+  background: #c1c7cb;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #535d64;
+  background: #aeb5b9;
 }
 
 /* WhatsApp Bouncing Typing Dots Animation */
@@ -108,9 +109,9 @@ aside {
   animation-delay: 0.4s;
 }
 
-/* Markdown Typography tailored for WhatsApp Bubbles */
+/* Markdown Typography tailored for WhatsApp Light Bubbles */
 .prose-wa {
-  color: #e9edef;
+  color: #111b21;
   line-height: 1.6;
 }
 
@@ -123,8 +124,8 @@ aside {
 }
 
 .prose-wa h1, .prose-wa h2, .prose-wa h3, .prose-wa h4 {
-  color: #ffffff;
-  font-weight: 600;
+  color: #111b21;
+  font-weight: 700;
   margin-top: 1rem;
   margin-bottom: 0.4rem;
 }
@@ -153,7 +154,7 @@ aside {
   border-left: 3px solid #00a884;
   padding-left: 0.85rem;
   font-style: italic;
-  color: #8696a0;
+  color: #54656f;
   margin: 0.65rem 0;
 }
 
@@ -165,17 +166,17 @@ aside {
 }
 
 .prose-wa th, .prose-wa td {
-  border: 1px solid #2a3942;
+  border: 1px solid #e9edef;
   padding: 0.45rem 0.65rem;
   text-align: left;
 }
 
 .prose-wa th {
-  background-color: #111b21;
-  color: #f1f5f9;
+  background-color: #f0f2f5;
+  color: #111b21;
 }
 
 .prose-wa a {
-  color: #53bdeb;
+  color: #008069;
   text-decoration: underline;
 }

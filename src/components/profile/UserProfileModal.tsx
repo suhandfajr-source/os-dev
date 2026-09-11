@@ -80,41 +80,41 @@ export const UserProfileModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in"
       onClick={closeModal}
     >
       <div
-        className="w-full max-w-md bg-[#202c33] border border-[#2a3942] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="w-full max-w-md bg-[#ffffff] border border-[#e9edef] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 py-4 bg-[#182229] border-b border-[#222d34] flex items-center justify-between">
+        <div className="px-5 py-4 bg-[#008069] flex items-center justify-between text-white shadow-sm">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-[#00a884] flex items-center justify-center text-white">
+            <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white">
               <User className="w-3.5 h-3.5" />
             </div>
-            <h3 className="font-semibold text-sm text-[#e9edef]">
+            <h3 className="font-bold text-sm text-white">
               Pengaturan Profil WhatsApp
             </h3>
           </div>
           <button
             type="button"
             onClick={closeModal}
-            className="p-1 rounded-full text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942] transition-colors"
+            className="p-1 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 bg-white">
           {/* Avatar Preview & Upload */}
           <div className="flex flex-col items-center">
             <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
               <div
-                className={`w-24 h-24 rounded-full overflow-hidden flex items-center justify-center shadow-lg border-2 border-[#00a884] ${
+                className={`w-24 h-24 rounded-full overflow-hidden flex items-center justify-center shadow-md border-2 border-[#008069] ${
                   avatarUrl
-                    ? 'bg-[#111b21]'
+                    ? 'bg-[#f0f2f5]'
                     : PRESET_AVATARS.find((p) => p.id === selectedPreset)?.bg || 'bg-emerald-600'
                 }`}
               >
@@ -126,7 +126,7 @@ export const UserProfileModal: React.FC = () => {
               </div>
 
               {/* Camera Hover Overlay */}
-              <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[11px]">
+              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[11px]">
                 <Camera className="w-6 h-6 mb-0.5" />
                 <span>Ubah Foto</span>
               </div>
@@ -145,7 +145,7 @@ export const UserProfileModal: React.FC = () => {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className="mt-2.5 text-xs text-[#25d366] hover:text-[#00a884] font-medium flex items-center gap-1.5"
+              className="mt-2.5 text-xs text-[#008069] hover:text-[#00a884] font-semibold flex items-center gap-1.5 cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
               {isUploading ? 'Mengunggah...' : 'Unggah Foto dari Komputer'}
@@ -154,7 +154,7 @@ export const UserProfileModal: React.FC = () => {
 
           {/* Preset Colors if no custom image */}
           <div>
-            <label className="block text-xs font-semibold text-[#8696a0] uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-[#54656f] uppercase tracking-wider mb-2">
               Atau Pilih Warna Avatar
             </label>
             <div className="flex items-center justify-center gap-3">
@@ -166,9 +166,9 @@ export const UserProfileModal: React.FC = () => {
                     setSelectedPreset(preset.id);
                     setAvatarUrl('');
                   }}
-                  className={`w-9 h-9 rounded-full ${preset.bg} flex items-center justify-center transition-all ${
+                  className={`w-9 h-9 rounded-full ${preset.bg} flex items-center justify-center transition-all cursor-pointer ${
                     !avatarUrl && selectedPreset === preset.id
-                      ? 'ring-2 ring-white ring-offset-2 ring-offset-[#202c33] scale-110'
+                      ? 'ring-2 ring-[#008069] ring-offset-2 scale-110 shadow-sm'
                       : 'opacity-80 hover:opacity-100'
                   }`}
                   title={preset.label}
@@ -183,37 +183,37 @@ export const UserProfileModal: React.FC = () => {
 
           {/* Display Name Input */}
           <div>
-            <label className="block text-xs font-semibold text-[#8696a0] uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-[#54656f] uppercase tracking-wider mb-2">
               Nama Tampilan Kamu di Grup
             </label>
-            <div className="relative bg-[#111b21] rounded-xl border border-[#2a3942] focus-within:border-[#00a884] transition-colors">
+            <div className="relative bg-[#f0f2f5] rounded-xl border border-[#e9edef] focus-within:border-[#008069] focus-within:bg-white transition-all shadow-xs">
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Contoh: Wahid / Suhandi"
-                className="w-full px-3.5 py-2.5 bg-transparent text-sm text-[#e9edef] placeholder-[#8696a0] focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-transparent text-sm text-[#111b21] placeholder-[#8696a0] focus:outline-none"
               />
             </div>
-            <p className="text-[11px] text-[#8696a0] mt-1.5">
+            <p className="text-[11px] text-[#667781] mt-1.5">
               Nama dan foto profil ini akan tampil pada setiap bubble chat kiriman kamu di grup.
             </p>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="px-5 py-3.5 bg-[#182229] border-t border-[#222d34] flex items-center justify-end gap-2.5">
+        <div className="px-5 py-3.5 bg-[#f0f2f5] border-t border-[#e9edef] flex items-center justify-end gap-2.5">
           <button
             type="button"
             onClick={closeModal}
-            className="px-4 py-2 text-xs font-medium text-[#8696a0] hover:text-[#e9edef] rounded-lg hover:bg-[#2a3942] transition-colors"
+            className="px-4 py-2 text-xs font-semibold text-[#54656f] hover:text-[#111b21] rounded-lg hover:bg-[#e9edef] transition-colors cursor-pointer"
           >
             Batal
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="px-5 py-2 text-xs font-semibold text-white bg-[#00a884] hover:bg-[#02906f] active:bg-[#008069] rounded-lg transition-colors shadow-md shadow-[#00a884]/20"
+            className="px-5 py-2 text-xs font-semibold text-white bg-[#008069] hover:bg-[#00a884] active:bg-[#005c4b] rounded-lg transition-colors shadow-sm cursor-pointer"
           >
             Simpan Perubahan
           </button>
