@@ -90,3 +90,16 @@ export interface SearchResult {
   matched_role: Role | 'title';
   created_at: string;
 }
+
+export type KnowledgeEntryType = 'tool' | 'library' | 'layanan' | 'konsep' | (string & {});
+
+export interface KnowledgeEntry {
+  id: string;
+  type: KnowledgeEntryType;
+  name: string;
+  function_summary: string;
+  when_to_use: string;
+  how_to_start: string;
+  created_at: string;
+  updated_at: string;
+}
