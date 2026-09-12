@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 320" width="100%" height="100%">
+  <defs>
+    <linearGradient id="apiBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b141a"/>
+      <stop offset="100%" stop-color="#111b21"/>
+    </linearGradient>
+  </defs>
+  <rect width="540" height="320" rx="16" fill="url(#apiBg)"/>
+  
+  <!-- Left: Client / Tamu -->
+  <g transform="translate(40, 60)">
+    <rect width="130" height="190" rx="12" fill="#202c33" stroke="#2a3942" stroke-width="1.5"/>
+    <circle cx="65" cy="55" r="24" fill="#38bdf8" opacity="0.2"/>
+    <text x="65" y="64" font-size="24" text-anchor="middle">👤</text>
+    <text x="65" y="115" fill="#e9edef" font-family="-apple-system, sans-serif" font-size="12" font-weight="bold" text-anchor="middle">Tamu / Browser</text>
+    <text x="65" y="135" fill="#8696a0" font-family="-apple-system, sans-serif" font-size="10" text-anchor="middle">Pesan Makanan</text>
+  </g>
+
+  <!-- Middle: API / Waiter -->
+  <g transform="translate(205, 50)">
+    <rect width="130" height="210" rx="12" fill="#202c33" stroke="#25d366" stroke-width="2"/>
+    <circle cx="65" cy="55" r="26" fill="#25d366" opacity="0.2"/>
+    <text x="65" y="64" font-size="26" text-anchor="middle">🤵</text>
+    <text x="65" y="115" fill="#25d366" font-family="-apple-system, sans-serif" font-size="13" font-weight="bold" text-anchor="middle">API (Pelayan)</text>
+    <text x="65" y="135" fill="#e9edef" font-family="-apple-system, sans-serif" font-size="10" text-anchor="middle">Antar Request</text>
+    <text x="65" y="152" fill="#e9edef" font-family="-apple-system, sans-serif" font-size="10" text-anchor="middle">&amp; Bawa Respon</text>
+  </g>
+
+  <!-- Right: Server & Dapur -->
+  <g transform="translate(370, 60)">
+    <rect width="130" height="190" rx="12" fill="#202c33" stroke="#2a3942" stroke-width="1.5"/>
+    <circle cx="65" cy="55" r="24" fill="#f59e0b" opacity="0.2"/>
+    <text x="65" y="64" font-size="24" text-anchor="middle">🍳</text>
+    <text x="65" y="115" fill="#e9edef" font-family="-apple-system, sans-serif" font-size="12" font-weight="bold" text-anchor="middle">Dapur / Server</text>
+    <text x="65" y="135" fill="#8696a0" font-family="-apple-system, sans-serif" font-size="10" text-anchor="middle">Masak &amp; Olah Data</text>
+  </g>
+</svg>
