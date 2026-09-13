@@ -169,6 +169,19 @@ export interface Artifact {
   updated_at: string;
 }
 
+export type StoryStatus = 'draft' | 'approved';
+
+export interface Story {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string;
+  status: StoryStatus;
+  order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SearchResult {
   id: string;
   title: string;

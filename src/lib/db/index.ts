@@ -1,7 +1,7 @@
 import { createClient } from '@libsql/client';
 import path from 'path';
 import fs from 'fs';
-import { Conversation, Message, Attachment, ConversationWithMessages, SearchResult, KnowledgeEntry, Project, StageName, StageStatusValue, ProjectStageStatuses, Artifact, ArtifactStage, ArtifactType, ArtifactStatus } from '@/types';
+import { Conversation, Message, Attachment, ConversationWithMessages, SearchResult, KnowledgeEntry, Project, StageName, StageStatusValue, ProjectStageStatuses, Artifact, ArtifactStage, ArtifactType, ArtifactStatus, Story, StoryStatus } from '@/types';
 
 const DB_DIR = path.join(process.cwd(), 'data');
 if (!fs.existsSync(DB_DIR)) {
@@ -166,6 +166,27 @@ async function doInitialize(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_artifact_project_stage ON artifact(project_id, stage);
   `);
 
+  // Stories (Meja Kendali) — kontrak skema inti: architecture-diagrams.md.
+  // PENTING: kolom "order" adalah reserved keyword SQLite — wajib dikutip di semua query
+  // (walkthrough elicitation story 4).
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS story (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'draft',
+      "order" INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+  `);
+
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_story_project_order ON story(project_id, "order");
+  `);
+
   // Walkthrough 324ad1b #3.2: penanda akhir doInitialize (pengganti flag isInitialized)
 }
 
@@ -298,6 +319,117 @@ export async function getAllStageStatuses(): Promise<Record<string, ProjectStage
     console.warn(`[db] Stage tidak dikenal dilewati saat menghitung status: ${[...unknownStages].join(', ')}`);
   }
   return out;
+}
+
+// =============================================================================
+// Spec & Stories (Meja Kendali) — wizard Planning tahap pecah PRD (story 4)
+// =============================================================================
+
+/**
+ * Upsert spec artifact — atomik terhadap approved (pola upsertPrdArtifact).
+ * Return null bila spec sudah approved (TOCTOU).
+ */
+export async function upsertSpecArtifact(
+  projectId: string,
+  content: string,
+  id: string
+): Promise<Artifact | null> {
+  await ensureDbInitialized();
+  const existing = await getArtifactRowByProjectStageType(projectId, 'planning', 'spec');
+  if (existing) {
+    const res = await client.execute({
+      sql: `UPDATE artifact SET content = ?, status = 'draft', updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ? AND status != 'approved'`,
+      args: [content, existing.id],
+    });
+    if (res.rowsAffected === 0) return null;
+    return getArtifactById(existing.id);
+  }
+  await client.execute({
+    sql: `INSERT INTO artifact (id, project_id, stage, type, status, content) VALUES (?, ?, 'planning', 'spec', 'draft', ?)`,
+    args: [id, projectId, content],
+  });
+  return getArtifactById(id);
+}
+
+function mapStoryRow(row: any): Story {
+  return {
+    id: String(row.id),
+    project_id: String(row.project_id),
+    title: String(row.title),
+    description: String(row.description ?? ''),
+    status: String(row.status) as StoryStatus,
+    order: Number(row.order),
+    created_at: String(row.created_at),
+    updated_at: String(row.updated_at),
+  };
+}
+
+/**
+ * Ganti seluruh stories proyek (regenerasi): delete + insert dalam satu batch
+ * (transaksi implisit). Order dinomori ulang 0..N-1 deterministik.
+ */
+export async function replaceStories(
+  projectId: string,
+  stories: { title: string; description: string }[],
+  idPrefix: string
+): Promise<Story[]> {
+  await ensureDbInitialized();
+  const now = `strftime('%Y-%m-%d %H:%M:%f','now')`;
+  const stmts: { sql: string; args: (string | number)[] }[] = [
+    { sql: `DELETE FROM story WHERE project_id = ?`, args: [projectId] },
+  ];
+  stories.forEach((s, i) => {
+    stmts.push({
+      sql: `INSERT INTO story (id, project_id, title, description, status, "order", created_at, updated_at) VALUES (?, ?, ?, ?, 'draft', ?, ${now}, ${now})`,
+      args: [`${idPrefix}-${i}`, projectId, s.title, s.description, i],
+    });
+  });
+  await client.batch(stmts, 'write');
+  return listStories(projectId);
+}
+
+export async function listStories(projectId: string): Promise<Story[]> {
+  await ensureDbInitialized();
+  const res = await client.execute({
+    sql: `SELECT * FROM story WHERE project_id = ? ORDER BY "order" ASC`,
+    args: [projectId],
+  });
+  return res.rows.map(mapStoryRow);
+}
+
+export async function getStoryById(id: string): Promise<Story | null> {
+  await ensureDbInitialized();
+  const res = await client.execute({ sql: `SELECT * FROM story WHERE id = ?`, args: [id] });
+  return res.rows.length > 0 ? mapStoryRow(res.rows[0]) : null;
+}
+
+export async function updateStory(
+  id: string,
+  fields: { title?: string; description?: string }
+): Promise<Story | null> {
+  await ensureDbInitialized();
+  const existing = await getStoryById(id);
+  if (!existing) return null;
+  await client.execute({
+    sql: `UPDATE story SET title = ?, description = ?, updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ?`,
+    args: [fields.title ?? existing.title, fields.description ?? existing.description, id],
+  });
+  return getStoryById(id);
+}
+
+export async function approveStory(id: string): Promise<Story | null> {
+  await ensureDbInitialized();
+  const existing = await getStoryById(id);
+  if (!existing) return null;
+  if (existing.status === 'approved') {
+    // Approve ulang: no-op aman, updated_at TIDAK diubah
+    return existing;
+  }
+  await client.execute({
+    sql: `UPDATE story SET status = 'approved', updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ?`,
+    args: [id],
+  });
+  return getStoryById(id);
 }
 
 export async function createConversation(id: string, title: string = 'Percakapan Baru'): Promise<Conversation> {

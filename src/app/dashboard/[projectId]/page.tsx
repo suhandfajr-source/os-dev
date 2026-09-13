@@ -12,8 +12,12 @@ import {
   RefreshCw,
   HelpCircle,
   StickyNote,
+  ListChecks,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
-import { Artifact, Project } from '@/types';
+import { Artifact, Project, Story } from '@/types';
 import { QUESTIONS_HEADING, QUESTIONS_EMPTY } from '@/lib/ai/prd-prompt';
 
 export default function ProjectDetailPage() {
@@ -33,6 +37,17 @@ export default function ProjectDetailPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  // Langkah 3 — spec + stories (story 4)
+  const [specId, setSpecId] = useState<string | null>(null);
+  const [specStatus, setSpecStatus] = useState<'draft' | 'approved' | null>(null);
+  const [specContent, setSpecContent] = useState('');
+  const [stories, setStories] = useState<Story[]>([]);
+  const [generatingSpec, setGeneratingSpec] = useState(false);
+  const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
+  const [editStoryTitle, setEditStoryTitle] = useState('');
+  const [editStoryDescription, setEditStoryDescription] = useState('');
+  const [storyWarningShown, setStoryWarningShown] = useState(false);
 
   const loadProject = useCallback(async () => {
     try {
@@ -65,15 +80,33 @@ export default function ProjectDetailPage() {
       setArtifacts(list);
       const prd = list.find((a) => a.type === 'prd');
       const brief = list.find((a) => a.type === 'brief');
+      const spec = list.find((a) => a.type === 'spec');
       if (prd) {
         setPrdId(prd.id);
         setPrdStatus(prd.status);
         setPrdContent(prd.content);
       }
       if (brief) setBrief(brief.content);
+      if (spec) {
+        setSpecId(spec.id);
+        setSpecStatus(spec.status);
+        setSpecContent(spec.content);
+      }
     } catch (err) {
       console.error('Failed to fetch artifacts:', err);
       setError('Gagal memuat artefak — data yang tampil mungkin tidak lengkap.');
+    }
+  }, [projectId]);
+
+  const loadStories = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/stories`);
+      if (res.ok) {
+        const data = await res.json();
+        setStories(data.stories || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch stories:', err);
     }
   }, [projectId]);
 
@@ -81,7 +114,10 @@ export default function ProjectDetailPage() {
     if (!projectId) return;
     loadProject();
     loadArtifacts();
-  }, [projectId, loadProject, loadArtifacts]);
+    loadStories();
+  }, [projectId, loadProject, loadArtifacts, loadStories]);
+
+  const approvedStoryCount = stories.filter((s) => s.status === 'approved').length;
 
   const handleDraftPrd = async () => {
     setError('');
@@ -176,6 +212,140 @@ export default function ProjectDetailPage() {
     } catch (err) {
       console.error('Failed to save brief:', err);
       setError('Gagal menyimpan brief.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDraftSpec = async () => {
+    setError('');
+    setNotice('');
+    // Lapisan UX (bukan guard API): konfirmasi regenerate saat ada story draft
+    if (specContent && stories.some((s) => s.status === 'draft')) {
+      const ok = window.confirm(
+        'Regenerate akan MENGGANTI seluruh spec dan stories draft (termasuk editanmu). Lanjutkan?'
+      );
+      if (!ok) return;
+    }
+    setGeneratingSpec(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/draft-spec`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Gagal memecah PRD.');
+        return;
+      }
+      setNotice('Spec + stories berhasil dibuat. Review, edit bila perlu, lalu setujui per item.');
+      await loadArtifacts();
+      await loadStories();
+    } catch (err) {
+      console.error('Failed to draft spec:', err);
+      setError('Gagal memecah PRD menjadi spec + stories.');
+    } finally {
+      setGeneratingSpec(false);
+    }
+  };
+
+  const handleSaveSpecDraft = async () => {
+    if (!specId) return;
+    setError('');
+    setNotice('');
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/artifacts/${specId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: specContent }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Gagal menyimpan draft spec.');
+        return;
+      }
+      setNotice('Draft spec tersimpan.');
+    } catch (err) {
+      console.error('Failed to save spec draft:', err);
+      setError('Gagal menyimpan draft spec.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleApproveSpec = async () => {
+    if (!specId) return;
+    setError('');
+    setNotice('');
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/artifacts/${specId}/approve`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Gagal menyetujui spec.');
+        return;
+      }
+      setNotice('Spec disetujui — terkunci.');
+      await loadArtifacts();
+    } catch (err) {
+      console.error('Failed to approve spec:', err);
+      setError('Gagal menyetujui spec.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleApproveStory = async (storyId: string) => {
+    setError('');
+    setNotice('');
+    // Peringatan konsekuensi sebelum approve story pertama ( elicitation story 4 )
+    if (approvedStoryCount === 0 && !storyWarningShown) {
+      const ok = window.confirm(
+        'Menyetujui story PERTAMA akan mengunci regenerasi spec + stories secara permanen (409). Lanjutkan?'
+      );
+      if (!ok) return;
+      setStoryWarningShown(true);
+    }
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/stories/${storyId}/approve`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Gagal menyetujui story.');
+        return;
+      }
+      await loadStories();
+    } catch (err) {
+      console.error('Failed to approve story:', err);
+      setError('Gagal menyetujui story.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const startEditStory = (s: Story) => {
+    setEditingStoryId(s.id);
+    setEditStoryTitle(s.title);
+    setEditStoryDescription(s.description);
+  };
+
+  const handleSaveStory = async (storyId: string) => {
+    setError('');
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/stories/${storyId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editStoryTitle, description: editStoryDescription }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Gagal menyimpan story.');
+        return;
+      }
+      setEditingStoryId(null);
+      await loadStories();
+    } catch (err) {
+      console.error('Failed to update story:', err);
+      setError('Gagal menyimpan story.');
     } finally {
       setBusy(false);
     }
@@ -349,6 +519,165 @@ export default function ProjectDetailPage() {
                 <CheckCircle2 size={14} /> Setujui PRD
               </button>
             </div>
+          </section>
+        )}
+
+        {/* Langkah 3: Spec + Stories (muncul saat PRD approved) */}
+        {prdStatus === 'approved' && (
+          <section className="bg-[#202c33] rounded-xl p-4 mb-6 border border-[#2f3b43]">
+            <div className="flex items-center gap-2 mb-3 text-[#e9edef]">
+              <FileText size={18} className="text-[#00a884]" />
+              <span className="font-medium text-sm">Langkah 3 — Pecah PRD jadi Spec + Stories</span>
+              {stories.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded border bg-[#00a884]/20 text-[#00a884] border-[#00a884]/40">
+                  {approvedStoryCount}/{stories.length} story disetujui
+                </span>
+              )}
+            </div>
+
+            <button
+              onClick={handleDraftSpec}
+              disabled={generatingSpec || specStatus === 'approved' || approvedStoryCount > 0}
+              title={
+                approvedStoryCount > 0
+                  ? 'Ada story yang sudah disetujui — regenerasi terkunci'
+                  : 'Minta AI memecah PRD menjadi spec + stories'
+              }
+              className="inline-flex items-center gap-2 bg-[#00a884] hover:bg-[#008f72] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              <Sparkles size={15} />
+              {generatingSpec ? 'Memecah PRD…' : specContent ? 'Draf Ulang Spec + Stories' : 'Pecah PRD dengan AI'}
+            </button>
+
+            {specContent && (
+              <div className="mt-4">
+                <div className="flex items-center gap-2 mb-2 text-[#e9edef]">
+                  <span className="text-xs font-medium">Spec</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                      specStatus === 'approved'
+                        ? 'bg-[#00a884]/20 text-[#00a884] border-[#00a884]/40'
+                        : 'bg-[#f5c33b]/15 text-[#f5c33b] border-[#f5c33b]/40'
+                    }`}
+                  >
+                    {specStatus === 'approved' ? 'disetujui' : 'draft'}
+                  </span>
+                </div>
+                <textarea
+                  value={specContent}
+                  onChange={(e) => setSpecContent(e.target.value)}
+                  readOnly={specStatus === 'approved'}
+                  rows={16}
+                  className="w-full bg-[#111b21] text-[#e9edef] rounded-lg px-3 py-2 text-xs font-mono outline-none focus:ring-1 focus:ring-[#00a884] resize-y leading-relaxed"
+                />
+                {specStatus !== 'approved' && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <button
+                      onClick={handleSaveSpecDraft}
+                      disabled={busy || generatingSpec || !specContent.trim()}
+                      className="inline-flex items-center gap-2 bg-[#2a3942] hover:bg-[#334550] disabled:opacity-40 disabled:cursor-not-allowed text-[#e9edef] text-xs font-medium px-3 py-2 rounded-lg transition-colors"
+                    >
+                      <Save size={14} /> Simpan Draft Spec
+                    </button>
+                    <button
+                      onClick={handleApproveSpec}
+                      disabled={busy || generatingSpec || !specContent.trim()}
+                      className="inline-flex items-center gap-2 bg-[#00a884] hover:bg-[#008f72] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium px-3 py-2 rounded-lg transition-colors"
+                    >
+                      <CheckCircle2 size={14} /> Setujui Spec
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {stories.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center gap-2 mb-2 text-[#e9edef]">
+                  <ListChecks size={16} className="text-[#00a884]" />
+                  <span className="text-xs font-medium">Stories ({stories.length})</span>
+                </div>
+                <div className="space-y-2">
+                  {stories.map((s, i) =>
+                    editingStoryId === s.id ? (
+                      <div key={s.id} className="bg-[#111b21] rounded-lg p-3 border border-[#00a884]/50">
+                        <input
+                          type="text"
+                          value={editStoryTitle}
+                          onChange={(e) => setEditStoryTitle(e.target.value)}
+                          maxLength={200}
+                          className="w-full bg-[#2a3942] text-[#e9edef] rounded px-2 py-1.5 text-xs mb-2 outline-none focus:ring-1 focus:ring-[#00a884]"
+                        />
+                        <textarea
+                          value={editStoryDescription}
+                          onChange={(e) => setEditStoryDescription(e.target.value)}
+                          rows={4}
+                          maxLength={20000}
+                          className="w-full bg-[#2a3942] text-[#e9edef] rounded px-2 py-1.5 text-xs mb-2 outline-none focus:ring-1 focus:ring-[#00a884] resize-y"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSaveStory(s.id)}
+                            disabled={busy}
+                            className="bg-[#00a884] hover:bg-[#008f72] disabled:opacity-40 text-white text-[11px] font-medium px-2.5 py-1 rounded flex items-center gap-1"
+                          >
+                            <Check size={12} /> Simpan
+                          </button>
+                          <button
+                            onClick={() => setEditingStoryId(null)}
+                            className="bg-[#2a3942] hover:bg-[#334550] text-[#e9edef] text-[11px] px-2.5 py-1 rounded flex items-center gap-1"
+                          >
+                            <X size={12} /> Batal
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        key={s.id}
+                        className="bg-[#2a3942] rounded-lg p-3 flex items-start justify-between gap-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-[#e9edef] text-xs font-medium">
+                            {i + 1}. {s.title}
+                          </p>
+                          <p className="text-[#8696a0] text-[11px] mt-1 whitespace-pre-wrap">{s.description}</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0 items-center">
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                              s.status === 'approved'
+                                ? 'bg-[#00a884]/20 text-[#00a884] border-[#00a884]/40'
+                                : 'bg-[#f5c33b]/15 text-[#f5c33b] border-[#f5c33b]/40'
+                            }`}
+                          >
+                            {s.status}
+                          </span>
+                          {s.status === 'draft' && (
+                            <>
+                              <button
+                                onClick={() => startEditStory(s)}
+                                title="Edit story"
+                                className="p-1.5 rounded text-[#8696a0] hover:text-[#00a884] hover:bg-[#202c33] transition-colors"
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              <button
+                                onClick={() => handleApproveStory(s.id)}
+                                disabled={busy}
+                                title="Setujui story"
+                                className="p-1.5 rounded text-[#8696a0] hover:text-[#00a884] hover:bg-[#202c33] disabled:opacity-40 transition-colors"
+                              >
+                                <CheckCircle2 size={13} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
           </section>
         )}
 
