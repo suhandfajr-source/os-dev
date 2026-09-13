@@ -8,15 +8,24 @@ if (!fs.existsSync(DB_DIR)) {
   fs.mkdirSync(DB_DIR, { recursive: true });
 }
 
-const DB_PATH = path.join(DB_DIR, 'assistant.db');
+const DB_PATH = process.env.DB_PATH || path.join(DB_DIR, 'assistant.db');
 const client = createClient({
   url: `file:${DB_PATH.replace(/\\/g, '/')}`,
 });
 
-let isInitialized = false;
+// Promise-cached (bukan flag boolean): menutup race concurrent-init saat cold start
+// Next.js / HMR — semua caller menunggu inisialisasi yang sama. (Walkthrough 324ad1b #3.2)
+let initPromise: Promise<void> | null = null;
 
-export async function ensureDbInitialized(): Promise<void> {
-  if (isInitialized) return;
+export function ensureDbInitialized(): Promise<void> {
+  initPromise ??= doInitialize();
+  return initPromise;
+}
+
+async function doInitialize(): Promise<void> {
+  // Kontrak eksplisit: cascade FK tidak boleh bergantung pada default client libsql
+  // (Walkthrough 324ad1b #10)
+  await client.execute('PRAGMA foreign_keys = ON;');
 
   await client.execute(`
     CREATE TABLE IF NOT EXISTS conversations (
@@ -123,13 +132,20 @@ export async function ensureDbInitialized(): Promise<void> {
 
   // Artifacts (Meja Kendali) — kontrak skema inti: architecture-diagrams.md (nama tabel: `artifact`)
   // status tahap DIHITUNG dari tabel ini, tidak disimpan terpisah (CAP-4/CAP-7)
-  // Migrasi terjaga: samakan nama tabel hasil pengembangan awal dengan kontrak
+  // Migrasi terjaga: samakan nama tabel hasil pengembangan awal dengan kontrak.
+  // Atomik via batch (transaksi implisit) + idempoten: kalau ALTER gagal, boot
+  // berikutnya mengulang dengan aman. (Walkthrough 324ad1b #3.1)
   const legacyTable = await client.execute(
     `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'artifacts'`
   );
   if (legacyTable.rows.length > 0) {
-    await client.execute(`DROP INDEX IF EXISTS idx_artifacts_project_stage`);
-    await client.execute(`ALTER TABLE artifacts RENAME TO artifact`);
+    await client.batch(
+      [
+        { sql: `DROP INDEX IF EXISTS idx_artifacts_project_stage`, args: [] },
+        { sql: `ALTER TABLE artifacts RENAME TO artifact`, args: [] },
+      ],
+      'write'
+    );
   }
 
   await client.execute(`
@@ -150,7 +166,7 @@ export async function ensureDbInitialized(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_artifact_project_stage ON artifact(project_id, stage);
   `);
 
-  isInitialized = true;
+  // Walkthrough 324ad1b #3.2: penanda akhir doInitialize (pengganti flag isInitialized)
 }
 
 // =============================================================================
@@ -256,10 +272,15 @@ export async function getAllStageStatuses(): Promise<Record<string, ProjectStage
     `SELECT project_id, stage, status FROM artifact`
   );
   const byProjectStage = new Map<string, Map<StageName, { status: string }[]>>();
+  const unknownStages = new Set<string>();
   for (const row of res.rows) {
     const pid = String(row.project_id);
     const stage = String(row.stage) as StageName;
-    if (!ALL_STAGES.includes(stage)) continue;
+    if (!ALL_STAGES.includes(stage)) {
+      // Typo stage jangan hanyut: tandai di log tanpa mengubah perilaku (Walkthrough 324ad1b #9)
+      unknownStages.add(stage);
+      continue;
+    }
     if (!byProjectStage.has(pid)) byProjectStage.set(pid, new Map());
     const stageMap = byProjectStage.get(pid)!;
     if (!stageMap.has(stage)) stageMap.set(stage, []);
@@ -272,6 +293,9 @@ export async function getAllStageStatuses(): Promise<Record<string, ProjectStage
     for (const stage of COMPUTED_STAGES_R1) {
       statuses[stage] = deriveStageStatus(stageMap.get(stage) || []);
     }
+  }
+  if (unknownStages.size > 0) {
+    console.warn(`[db] Stage tidak dikenal dilewati saat menghitung status: ${[...unknownStages].join(', ')}`);
   }
   return out;
 }

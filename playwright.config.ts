@@ -1,12 +1,22 @@
 import { defineConfig } from '@playwright/test';
+import path from 'path';
 
 /**
- * Playwright config — QA tests untuk fitur Meja Kendali (Story 1).
- * Port 3000 (port dev standar): jika dev server sudah jalan, dipakai;
- * jika belum, Playwright menyalakannya otomatis.
- * Catatan: DB tidak di-mock (hardcode ke data/assistant.db), jadi semua data test
- * memakai penanda "QA-" unik dan dihapus lewat API di cleanup.
+ * Playwright config — QA tests fitur Meja Kendali (Story 1 & 2).
+ *
+ * ISOLASI DB (walkthrough 324ad1b #6): server test dan test client memakai
+ * file DB terpisah (data/test-e2e.db), BUKAN data/assistant.db produksi.
+ * `process.env.DB_PATH` dibaca oleh src/lib/db/index.ts (server) dan oleh
+ * test API yang seed artifact langsung ke DB.
+ *
+ * Port 3100 (bukan 3000): server test selalu dinyalakan sendiri dengan
+ * DB_PATH test — reuseExistingServer dimatikan agar tidak pernah memakai
+ * dev server yang memakai assistant.db.
+ * Semua data test ber-prefix "QA-" unik dan dihapus via API di cleanup.
  */
+const TEST_DB = path.join(__dirname, 'data', 'test-e2e.db');
+process.env.DB_PATH = TEST_DB;
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
@@ -14,13 +24,14 @@ export default defineConfig({
   timeout: 120_000,
   expect: { timeout: 15_000 },
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3100',
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'npx next dev -p 3000',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    command: 'npx next dev -p 3100',
+    url: 'http://localhost:3100',
+    reuseExistingServer: false,
     timeout: 240_000,
+    env: { DB_PATH: TEST_DB },
   },
 });

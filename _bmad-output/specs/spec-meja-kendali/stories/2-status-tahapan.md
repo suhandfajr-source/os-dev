@@ -27,6 +27,7 @@ context: ['_bmad-output/specs/spec-meja-kendali/SPEC.md', '_bmad-output/specs/sp
 - `src/app/dashboard/page.tsx` — chip status 6 tahap di kartu proyek (hijau=selesai, kuning=draf, abu=belum); refresh status setelah create/edit, dibuang saat delete.
 - Keputusan: aturan status uniform untuk semua stage (selesai = ≥1 approved; draf = ≥1 draft tanpa approved) — persis kontrak elicitation; wizard stories berikutnya cukup insert artifacts.
 - Keputusan: tidak ada endpoint per-proyek (N+1 dihindari) — UI personal, satu endpoint peta penuh cukup.
+- Pasca-walkthrough (324ad1b) — hardening tanpa perubahan perilaku fitur: (1) isolasi DB test — `DB_PATH` env di-respect `db/index.ts`, Playwright memakai `data/test-e2e.db` di port 3100 dengan server sendiri; (2) `ensureDbInitialized` promise-cached (tutup race concurrent-init); (3) `PRAGMA foreign_keys = ON` eksplisit + migrasi rename atomik via `client.batch`; (4) `console.warn` stage tak-dikenal; (5) tombol retry saat status gagal dimuat. DB biner `data/assistant.db` masih di-track git (keputusan workflow user, terbuka untuk dibahas).
 
 ## Review Triage Log
 

@@ -17,9 +17,9 @@ const marker = `QA-ST-${Date.now()}`;
 const createdIds: string[] = [];
 
 function db() {
-  return createClient({
-    url: 'file:' + path.join(process.cwd(), 'data', 'assistant.db').replace(/\\/g, '/'),
-  });
+  // Ikuti DB_PATH yang diset playwright.config.ts (DB test terisolasi)
+  const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data', 'assistant.db');
+  return createClient({ url: 'file:' + dbPath.replace(/\\/g, '/') });
 }
 
 async function seedArtifact(

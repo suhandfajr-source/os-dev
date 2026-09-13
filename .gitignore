@@ -39,3 +39,6 @@ next-env.d.ts
 # Playwright
 test-results/
 playwright-report/
+
+# isolated playwright test DB
+data/test-*.db

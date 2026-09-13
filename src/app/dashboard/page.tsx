@@ -51,6 +51,10 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const retryStageStatuses = useCallback(() => {
+    void fetchStageStatuses();
+  }, [fetchStageStatuses]);
+
   const fetchProjects = useCallback(async () => {
     try {
       const res = await fetch('/api/projects');
@@ -220,6 +224,19 @@ export default function DashboardPage() {
             {busy ? 'Menyimpan…' : 'Buat Proyek'}
           </button>
         </form>
+
+        {/* Retry status (walkthrough 324ad1b #5) */}
+        {statusLoadFailed && (
+          <div className="flex items-center gap-2 mb-4 text-xs text-[#f5c33b]">
+            <span>Status tahapan gagal dimuat — chip menampilkan data tidak pasti.</span>
+            <button
+              onClick={retryStageStatuses}
+              className="underline hover:text-[#f5c33b]/80"
+            >
+              Coba lagi
+            </button>
+          </div>
+        )}
 
         {/* Project list */}
         {loading ? (
