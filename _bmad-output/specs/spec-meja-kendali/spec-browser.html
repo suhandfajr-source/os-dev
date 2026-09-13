@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPEC Meja Kendali — Browser</title>
+<style>
+  :root { --ink:#1f2430; --paper:#f5f4f0; --accent:#8c2f39; --gold:#b98a2f; --line:#ddd6c8; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:Georgia,serif; background:var(--paper); color:var(--ink); line-height:1.65; }
+  header { background:#232833; color:#f0ead8; padding:22px 32px; }
+  header h1 { font-size:22px; }
+  header p { color:#b9b2a0; font-size:13px; margin-top:4px; font-style:italic; }
+  nav { background:#2e3440; padding:0 32px; display:flex; gap:4px; flex-wrap:wrap; }
+  nav a { color:#cfc8b4; text-decoration:none; padding:10px 16px; font-size:14px; font-family:Verdana,sans-serif; }
+  nav a:hover, nav a.active { background:var(--paper); color:var(--ink); border-radius:6px 6px 0 0; }
+  main { max-width:880px; margin:0 auto; padding:36px 24px 80px; }
+  .page { display:none; background:#fffdf8; border:1px solid var(--line); border-radius:10px; padding:44px 52px; box-shadow:0 1px 10px rgba(0,0,0,.05); }
+  .page.active { display:block; }
+  h2.doc-title { color:var(--accent); border-bottom:2px solid var(--gold); padding-bottom:10px; margin-bottom:22px; font-size:26px; }
+  h3 { margin:26px 0 10px; color:#4a4136; font-size:18px; }
+  p { margin:10px 0; }
+  ul { margin:10px 0 10px 24px; }
+  li { margin:6px 0; }
+  table { width:100%; border-collapse:collapse; margin:14px 0; font-size:14.5px; }
+  th,td { border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; }
+  th { background:#f1ecdf; }
+  code, pre { font-family:'Courier New',monospace; }
+  code { background:#efe9d9; padding:1px 6px; border-radius:4px; font-size:.9em; }
+  pre { background:#2e3440; color:#e8e3d3; padding:18px; border-radius:8px; overflow-x:auto; font-size:13px; line-height:1.5; margin:14px 0; }
+  .cap { border-left:3px solid var(--gold); padding:10px 16px; margin:14px 0; background:#faf7ee; border-radius:0 8px 8px 0; }
+  .cap b { color:var(--accent); }
+  .meta { font-size:12.5px; color:#8a8272; font-family:Verdana,sans-serif; background:#f1ecdf; border-radius:6px; padding:10px 14px; margin-bottom:22px; }
+  .stamp { display:inline-block; border:2px solid var(--accent); color:var(--accent); border-radius:6px; padding:2px 10px; font-size:12px; letter-spacing:.15em; font-family:Verdana,sans-serif; transform:rotate(-2deg); }
+</style>
+</head>
+<body>
+<header>
+  <h1>📋 SPEC — Meja Kendali (Asisten SDLC)</h1>
+  <p>_bmad-output/specs/spec-meja-kendali/ · 7 capabilities · 3 companions · 7 stories · Self-Validate: LULUS · Open Questions: 0</p>
+</header>
+<nav>
+  <a href="#spec" class="active">SPEC.md</a>
+  <a href="#release">Release Plan</a>
+  <a href="#scope">Stage Scope</a>
+  <a href="#arch">Diagrams</a>
+  <a href="#stories">Stories (R1)</a>
+</nav>
+<main>
+
+<!-- ============ SPEC.md ============ -->
+<section class="page active" id="spec">
+  <h2 class="doc-title">SPEC.md — Meja Kendali</h2>
+  <div class="meta">id: SPEC-meja-kendali · companions: release-plan.md, stage-scope.md, architecture-diagrams.md · sources: _bmad-output/forge/asisten-sdlc/forged-idea.md</div>
+
+  <h3>Why</h3>
+  <p>Vibecoder non-IT (pemilik aplikasi ini) sudah punya asisten AI percakapan (WhatsApp mode) tapi tidak punya tempat terstruktur untuk menjalani lifecycle SDLC — Planning sampai Maintenance — sesuai materi HaramainKU Sesi 2. Tanpa itu, proyek berjalan dari prompt ngasal: artefak tidak tersimpan, status tidak terlihat, dokumentasi hilang. Gabungan <i>pain to solve</i> dan <i>opportunity</i>: AI client, database, dan knowledge base sudah ada — yang kurang ruang kerja terstruktur per proyek.</p>
+
+  <h3>Capabilities</h3>
+  <div class="cap"><b>CAP-1 — Dual mode.</b> User beralih antara WhatsApp mode & Dashboard mode, satu backend sama. <i>Success:</i> pindah mode tanpa kehilangan state; data terbaca di kedua mode.</div>
+  <div class="cap"><b>CAP-2 — Proyek entitas utama.</b> Halaman depan Dashboard = daftar proyek; satu proyek = satu meja kendali. <i>Success:</i> proyek baru langsung punya meja kendali yang bisa dibuka.</div>
+  <div class="cap"><b>CAP-3 — Wizard per tahap, AI di belakangnya.</b> Form terstruktur: AI mendraf, user review/edit/approve. <i>Success:</i> wizard Planning mengubah brief jadi draf PRD yang bisa diedit & disetujui (bukan chat-driven).</div>
+  <div class="cap"><b>CAP-4 — Status tahapan (Remind).</b> Asisten menjelaskan status tiap tahap (selesai/belum) + apa yang belum dikerjakan. <i>Success:</i> tiap proyek menampilkan status 6 tahap + sisa pekerjaan konkret.</div>
+  <div class="cap"><b>CAP-5 — Pencatatan artefak (Record).</b> Artefak & keputusan yang disetujui tersimpan per proyek/tahap. <i>Success:</i> artefak approved tersimpan & bisa dibuka kembali.</div>
+  <div class="cap"><b>CAP-6 — Paket handoff.</b> Spec + acceptance criteria dari story siap tempel ke coding agent. <i>Success:</i> paket tergenerate dari story approved & siap disalin utuh.</div>
+  <div class="cap"><b>CAP-7 — Akses tahap bebas.</b> Tanpa kunci berurutan; disiplin lewat status advisory. <i>Success:</i> tahap mana pun bisa dibuka langsung, status tetap akurat.</div>
+
+  <h3>Constraints</h3>
+  <ul>
+    <li>Mesin <b>tidak pernah eksekusi</b> — hanya draft/record/remind.</li>
+    <li>Urutan tahap di UI tetap Planning → Design → Development → Testing → Deployment → Maintenance, meski akses bebas.</li>
+    <li>Fitur WhatsApp mode existing (kamus FTS, simpan tools) wajib tetap berfungsi.</li>
+    <li>Stack existing: Next.js + SQLite/libSQL + Gemini client; tanpa infrastruktur baru di R1.</li>
+    <li>Model AI dua tingkat via env: <code>AI_MODEL</code>=gemini-3.6-flash (berat), <code>AI_MODEL_LIGHT</code>=gemini-3.5-flash-lite (ringan); fallback chain & retry existing dipertahankan.</li>
+  </ul>
+
+  <h3>Non-goals</h3>
+  <ul>
+    <li>Tidak ada monitoring realtime ala Sentry/PostHog dari dalam sistem.</li>
+    <li>Tidak ada eksekusi deploy/CI.</li>
+    <li>Tidak ada generate/kompilasi kode di dalam aplikasi.</li>
+    <li>Tidak ada multi-user/role system (personal tool).</li>
+  </ul>
+
+  <h3>Success Signal</h3>
+  <p>User menjalankan satu proyek nyata end-to-end dari meja kendali: brief → spec/stories disetujui → paket handoff ditempel ke coding agent → hasil dicatat kembali — tanpa keluar dari Dashboard untuk artefak planning. <span class="stamp">TERUKUR</span></p>
+
+  <h3>Assumptions</h3>
+  <ul>
+    <li>Personal tool single-user, tanpa auth/role system.</li>
+    <li>Skema data detail per artefak dirancang saat implementasi/architecture.</li>
+    <li>R1 fokus backend: Dashboard mengikuti pola UI existing; jalur <code>bmad-ux</code> ditunda, bukan dibatalkan.</li>
+  </ul>
+</section>
+
+<!-- ============ RELEASE PLAN ============ -->
+<section class="page" id="release">
+  <h2 class="doc-title">Release Plan — R1 s/d R4</h2>
+  <div class="meta">Urutan membangun fitur, mengikuti ketergantungan data antar fitur — bukan urutan tahapan SDLC.</div>
+  <table>
+    <tr><th>Rilis</th><th>Isi</th><th>Alasan</th></tr>
+    <tr><td><b>R1</b><br>Fondasi + loop inti</td><td>Entitas <code>Proyek</code> + daftar proyek · mesin status tahapan · wizard <b>Planning</b> (brief → PRD) · fitur <b>Development</b> (story board, handoff, changelog)</td><td>Development makan stories dari Planning — dipisah = setengah jalan</td></tr>
+    <tr><td><b>R2</b><br>Tahapan ringan</td><td>Wizard <b>Design</b> (wireframe, mermaid, keputusan) · wizard <b>Testing</b> (test plan, log manual) · <b>plan monitoring</b></td><td>Ringan & mandiri; plan monitoring tak butuh riwayat & kebutuhan nyata user</td></tr>
+    <tr><td><b>R3</b><br>Maintenance penuh</td><td>Catatan insiden · retrospective · sinerji KB (FTS) antar proyek</td><td>Makan riwayat dari tahap lain — didahulukan = form kosong</td></tr>
+    <tr><td><b>R4</b><br>Deployment</td><td>Checklist pre-deploy · generator config CI/CD (yml) · deploy log + rollback</td><td>Pelengkap, paling ujung rantai</td></tr>
+  </table>
+</section>
+
+<!-- ============ STAGE SCOPE ============ -->
+<section class="page" id="scope">
+  <h2 class="doc-title">Stage Scope — Peran Asisten per Tahap</h2>
+  <div class="meta">Mesin = asisten, bukan eksekutor. Tiga kerja universal: <b>Draft</b> · <b>Record</b> · <b>Remind</b>. Eksekusi di meja kerja lain (user + coding agent + tool eksternal).</div>
+  <table>
+    <tr><th>Tahap</th><th>🔨 Draft</th><th>📝 Record</th><th>🔔 Remind</th></tr>
+    <tr><td><b>Planning</b></td><td>Brief tanya-jawab, draf PRD/spec, daftar pertanyaan belum dijawab</td><td>Keputusan & alasannya</td><td>Pertanyaan kritis belum terjawab</td></tr>
+    <tr><td><b>Design</b></td><td>Deskripsi wireframe, diagram mermaid, draf keputusan arsitektur</td><td>Keputusan design & trade-off</td><td>Bagian design belum diputuskan</td></tr>
+    <tr><td><b>Development</b></td><td>Story rapi, paket handoff untuk coding agent</td><td>Status story, changelog, keputusan teknis, bug</td><td>Story belum selesai, dependensi</td></tr>
+    <tr><td><b>Testing</b></td><td>Test plan & test case, acceptance criteria</td><td>Hasil test manual, daftar bug</td><td>Test belum jalan, bug belum tutup</td></tr>
+    <tr><td><b>Deployment</b></td><td>Checklist pre-deploy, config CI/CD, panduan deploy</td><td>Log deploy: tanggal, versi, rollback</td><td>Checklist belum dicentang</td></tr>
+    <tr><td><b>Maintenance</b></td><td>Rencana monitoring, template retrospective</td><td>Catatan insiden, hasil retro, pelajaran</td><td>Hal yang perlu dicek berkala</td></tr>
+  </table>
+  <p>Pola: draft makin teknis ke kanan, record makin operasional ke kanan. Asisten tidak pernah mengeksekusi.</p>
+</section>
+
+<!-- ============ DIAGRAMS ============ -->
+<section class="page" id="arch">
+  <h2 class="doc-title">Architecture Diagrams</h2>
+  <h3>Dua frontend, satu dapur</h3>
+  <pre>┌─────────────────────┐        ┌──────────────────────┐
+│  FRONTEND WHATSAPP  │        │   FRONTEND DASHBOARD │
+│  kamus & simpan     │        │   meja kendali SDLC  │
+│  tools (ad hoc)     │        │   wizard per tahap   │
+└──────────┬──────────┘        └──────────┬───────────┘
+           │        ┌───────────┐         │
+           └────────┤  BACKEND  ├─────────┘
+                    │ AI + data │
+                    │ + KB (FTS)│──→ paket handoff ──→ 🖥️ meja kerja lain
+                    └───────────┘      (spec + AC)      (coding agent)</pre>
+  <ul>
+    <li><b>WhatsApp mode</b> — perekam cepat & kamus; fitur existing tetap utuh.</li>
+    <li><b>Dashboard mode</b> — kerja terstruktur per proyek per tahap.</li>
+    <li><b>Backend tunggal</b> — data, AI client, KB (FTS) dipakai bersama; tanpa duplikasi.</li>
+  </ul>
+  <h3>Alur wizard per tahap (CAP-3)</h3>
+  <pre>User isi form  →  AI mendraf  →  User review & edit  →  Approve  →  Artefak tersimpan (CAP-5)
+                                              ↑                                │
+                                              └── status tahap diperbarui (CAP-4) ┘</pre>
+  <p>Gerbang = persetujuan user, bukan kunci sistem: tahapan bebas diakses (CAP-7).</p>
+</section>
+
+<!-- ============ STORIES ============ -->
+<section class="page" id="stories">
+  <h2 class="doc-title">stories.yaml — 7 Stories R1</h2>
+  <div class="meta">Dieksekusi berurutan dari atas ke bawah · spec_checkpoint: story 1 & 4 · done_checkpoint: story 7 · R2–R4 dipecah setelah R1 selesai.</div>
+  <table>
+    <tr><th>#</th><th>Judul</th><th>Isi</th><th>Catatan dispatch (invoke_dev_with)</th></tr>
+    <tr><td><b>1</b> 🔍</td><td>Fondasi Proyek — entitas, API, daftar proyek</td><td>Entitas <code>project</code> + API CRUD + halaman daftar proyek (CAP-2)</td><td>Ikuti pola data access & UI existing; jangan intro ORM/library baru</td></tr>
+    <tr><td><b>2</b></td><td>Mesin Status Tahapan</td><td>Status 6 tahap dari artefak approved + endpoint status (CAP-4, CAP-7)</td><td>Status advisory, tahap tidak dikunci; urutan tampil tetap sesuai SPEC</td></tr>
+    <tr><td><b>3</b></td><td>Model AI Dua Tingkat</td><td>AI_MODEL_LIGHT + dukungan tier di GeminiProvider, fallback utuh</td><td>Chat existing tetap default AI_MODEL & lolos smoke test; murni di belakang env</td></tr>
+    <tr><td><b>4</b> 🔍</td><td>Wizard Planning: Brief → PRD</td><td>Form brief → AI draf PRD (tier berat) → review/edit/approve → simpan</td><td>Tier berat; JSON via responseMimeType; bukan chat-driven</td></tr>
+    <tr><td><b>5</b></td><td>Wizard Planning: PRD → Spec + Stories</td><td>Pecah PRD approved jadi spec + stories, approve & simpan</td><td>Tier berat untuk penalaran; tier ringan untuk transformasi kecil</td></tr>
+    <tr><td><b>6</b></td><td>Story Board + Changelog</td><td>Story per proyek, update status, catatan keputusan (CAP-5)</td><td>Changelog append-only</td></tr>
+    <tr><td><b>7</b> 🏁</td><td>Paket Handoff ke Coding Agent</td><td>Generate spec + AC dari story approved (CAP-6)</td><td>Output bisa disalin utuh sebagai satu teks markdown</td></tr>
+  </table>
+  <p style="font-size:13px;color:#8a8272">🔍 = spec_checkpoint (review spesifikasi sebelum implementasi) · 🏁 = done_checkpoint (berhenti untuk review manusia setelah selesai)</p>
+</section>
+
+</main>
+<script>
+  document.querySelectorAll('nav a').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelectorAll('nav a, .page').forEach(el => el.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelector(a.getAttribute('href')).classList.add('active');
+  }));
+</script>
+</body>
+</html>
