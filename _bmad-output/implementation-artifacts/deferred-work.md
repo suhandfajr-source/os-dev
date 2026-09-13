@@ -5,5 +5,5 @@
   summary: Tidak ada autentikasi/otorisasi di endpoint /api/projects (GET/POST/PATCH/DELETE terbuka penuh).
   evidence: Real (terverifikasi di kode), tetapi intent frozen story ini menyatakan eksplisit "Never: Tanpa auth/role (personal tool single-user)". Perlu keputusan human jika aplikasi kelak diekspos ke jaringan — desain auth tidak boleh diinfer dari intent saat ini.
 - source_spec: `_bmad-output/specs/spec-meja-kendali/stories/1-fondasi-proyek.md`
-  summary: Tidak ada automated test untuk CRUD proyek (create flow, partial-merge updateProject, path 404, ordering listProjects) — verification-gap layer pre-verified: 0 file test di repo, package.json tanpa script test.
-  evidence: Intent frozen "Never: Jangan mengintroduksi ORM/library baru" menutup penambahan test runner (vitest/jest) dari patch loop ini. Untuk menutup gap: human memutuskan menambah test runner sebagai dev-dependency, lalu buat test route handler dengan libsql in-memory; sampai itu, verifikasi tetap manual via curl + UI per bagian Verification spec.
+  summary: [DITUTUP oleh sesi QA] Tidak ada automated test untuk CRUD proyek — kini ter-cover 13 test Playwright (tests/api/projects.spec.ts + tests/e2e/dashboard.spec.ts, runner @playwright/test sebagai devDependency).
+  evidence: Gap asli terverifikasi (0 file test saat itu), lalu sesi bmad-qa-generate-e2e-tests menambahkan test runner + 13 test yang lulus penuh; entry ini tersisa sebagai catatan riwayat.

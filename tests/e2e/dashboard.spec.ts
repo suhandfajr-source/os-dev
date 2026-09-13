@@ -50,8 +50,8 @@ test.describe('Dashboard Meja Kendali', () => {
     const listBefore = await page.locator('div.rounded-xl h3').allTextContents();
     expect(listBefore.indexOf(cmpName)).toBeLessThan(listBefore.indexOf(name));
 
-    // updated_at beresolusi detik: beri jeda agar bump updated_at pasti > pembuat cmp
-    await page.waitForTimeout(1200);
+    // jeda kecil agar bump updated_at (presisi milidetik) pasti > pembuat cmp
+    await page.waitForTimeout(300);
 
     // edit proyek pertama
     const card = page.locator('div.rounded-xl').filter({ hasText: name }).first();

@@ -77,8 +77,8 @@ test.describe('Projects API', () => {
     const { project } = await create.json();
     createdIds.push(project.id);
 
-    // pastikan timestamp detik-nya berjalan sebelum edit
-    await new Promise((r) => setTimeout(r, 1200));
+    // jeda kecil: updated_at berpresisi milidetik, cukup untuk memastikan bump > created_at
+    await new Promise((r) => setTimeout(r, 300));
 
     const res = await request.patch(`/api/projects/${project.id}`, {
       data: { name: `${marker} sesudah`, description: 'sudah diedit' },
@@ -124,12 +124,12 @@ test.describe('Projects API', () => {
   test('proyek yang diedit naik ke urutan teratas daftar (urut updated_at DESC)', async ({ request }) => {
     const a = await (await request.post('/api/projects', { data: { name: `${marker} A` } })).json();
     createdIds.push(a.project.id);
-    await new Promise((r) => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 300));
     const b = await (await request.post('/api/projects', { data: { name: `${marker} B` } })).json();
     createdIds.push(b.project.id);
 
     // B paling baru, jadi paling atas. Edit A agar A naik ke atas.
-    await new Promise((r) => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 300));
     await request.patch(`/api/projects/${a.project.id}`, { data: { description: 'bump' } });
 
     const list = await (await request.get('/api/projects')).json();
