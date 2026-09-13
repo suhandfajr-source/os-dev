@@ -6,50 +6,46 @@
   spec_checkpoint: true
   invoke_dev_with: >-
     Ikuti pola data access & UI yang sudah ada di aplikasi; jangan intro
-    ORM/library baru (constraint: SQLite/libSQL existing). Dashboard mengikuti
-    pola UI existing — belum ada desain UI khusus.
+    ORM/library baru (constraint: SQLite/libSQL existing). Skema data inti
+    mengikuti architecture-diagrams.md (project, artifact, story, changelog).
+    Dashboard mengikuti pola UI existing — belum ada desain UI khusus.
 
 - id: "2"
-  title: Mesin Status Tahapan
+  title: Status Tahapan — Planning & Development
   description: >-
-    Menghitung status enam tahap (Planning s/d Maintenance) dari artefak yang
-    disetujui (CAP-4, CAP-7) dan menyediakan endpoint status per proyek.
+    Menyajikan status tahap dari artefak yang disetujui (CAP-4, CAP-7): di R1
+    cukup untuk tahap Planning dan Development; mesin 6 tahap penuh tuntas di R2.
   invoke_dev_with: >-
     Status bersifat advisory — tahap TIDAK dikunci; akses bebas tetap berlaku.
     Urutan tampil tahap tetap Planning → Design → Development → Testing →
-    Deployment → Maintenance sesuai constraint SPEC.
+    Deployment → Maintenance sesuai constraint SPEC; tahap yang belum didukung
+    wizard tampil sebagai "belum dimulai".
 
 - id: "3"
-  title: Dukungan model AI dua tingkat
-  description: >-
-    Menambah tier ringan di GeminiProvider (CAP infrastruktur untuk CAP-3):
-    AI_MODEL_LIGHT env untuk tugas ringan, AI_MODEL untuk tugas berat;
-    fallback chain & retry existing dipertahankan per tingkat.
-  invoke_dev_with: >-
-    Mengubah GeminiProvider (singleton) — chat WhatsApp existing tetap memakai
-    AI_MODEL sebagai default dan wajib lolos smoke test chat sebelum story
-    selesai; tambahan murni di belakang env, tanpa provider baru.
-
-- id: "4"
   title: Wizard Planning — Brief ke draf PRD
   description: >-
-    Wizard terstruktur (CAP-3): user mengisi brief, AI mendraf PRD memakai tier
-    berat, user review/edit lalu approve; artefak tersimpan (CAP-5).
+    Wizard terstruktur (CAP-3): user mengisi brief, AI mendraf PRD, user
+    review/edit lalu approve; artefak tersimpan (CAP-5).
   spec_checkpoint: true
   invoke_dev_with: >-
-    Semua panggilan AI draf memakai tier berat (AI_MODEL); response tetap JSON
+    Semua panggilan AI draf memakai AI_MODEL (tier berat); response tetap JSON
     via responseMimeType sesuai pola provider. Bukan chat-driven — bentuk wizard.
+    Kualitas draf wajib: PRD minimal mencakup seluruh fitur yang disebut dalam
+    brief plus daftar pertanyaan kritis yang belum dijawab user — bukan draf
+    generik yang sekadar "bisa disetujui".
 
-- id: "5"
+- id: "4"
   title: Wizard Planning — PRD ke Spec + Stories
   description: >-
     Melanjutkan wizard Planning (CAP-3): memecah PRD yang disetujui menjadi
     spec + stories, masing-masing melalui review/edit/approve lalu tersimpan.
+  spec_checkpoint: true
   invoke_dev_with: >-
-    Tier berat untuk penalaran pecah stories; tier ringan cukup untuk
-    transformasi kecil (perbaikan teks, ringkasan antar langkah).
+    Tier berat (AI_MODEL) untuk penalaran pecah stories. Ini single point of
+    failure loop inti — hasil pecahan wajib direview user (spec_checkpoint)
+    sebelum story board & handoff dibangun di atasnya.
 
-- id: "6"
+- id: "5"
   title: Story Board + Changelog
   description: >-
     Fitur Record tahap Development (CAP-5): tampilan story per proyek, update
@@ -57,7 +53,7 @@
   invoke_dev_with: >-
     Status story mengikuti pola data existing; catatan changelog append-only.
 
-- id: "7"
+- id: "6"
   title: Paket Handoff ke Coding Agent
   description: >-
     Fitur penghubung ke eksekusi (CAP-6): menghasilkan paket handoff berisi
