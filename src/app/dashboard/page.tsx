@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { FolderPlus, Pencil, Trash2, Check, X, LayoutDashboard } from 'lucide-react';
 import { Project, StageName, StageStatusValue, ProjectStageStatuses } from '@/types';
 
@@ -286,7 +287,9 @@ export default function DashboardPage() {
                   className="bg-[#202c33] hover:bg-[#233138] transition-colors rounded-xl p-4 border border-[#2f3b43] flex items-start justify-between gap-3"
                 >
                   <div className="min-w-0">
-                    <h3 className="text-[#e9edef] font-medium text-sm truncate">{p.name}</h3>
+                    <Link href={`/dashboard/${p.id}`} className="hover:underline">
+                      <h3 className="text-[#e9edef] font-medium text-sm truncate">{p.name}</h3>
+                    </Link>
                     {p.description && (
                       <p className="text-[#8696a0] text-xs mt-1 whitespace-pre-wrap">{p.description}</p>
                     )}

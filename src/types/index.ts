@@ -121,6 +121,54 @@ export type StageStatusValue = 'selesai' | 'draf' | 'belum_dimulai';
 
 export type ProjectStageStatuses = Record<StageName, StageStatusValue>;
 
+export type ArtifactStage = StageName;
+
+export type ArtifactType =
+  | 'brief'
+  | 'prd'
+  | 'spec'
+  | 'story'
+  | 'handoff'
+  | 'design'
+  | 'test-plan'
+  | 'deploy-checklist'
+  | 'retro';
+
+// Sumber kebenaran tunggal untuk validasi filter query (story 3 R5)
+export const ALL_ARTIFACT_STAGES: ArtifactStage[] = [
+  'planning',
+  'design',
+  'development',
+  'testing',
+  'deployment',
+  'maintenance',
+];
+
+export const ALL_ARTIFACT_TYPES: ArtifactType[] = [
+  'brief',
+  'prd',
+  'spec',
+  'story',
+  'handoff',
+  'design',
+  'test-plan',
+  'deploy-checklist',
+  'retro',
+];
+
+export type ArtifactStatus = 'draft' | 'approved';
+
+export interface Artifact {
+  id: string;
+  project_id: string;
+  stage: ArtifactStage;
+  type: ArtifactType;
+  status: ArtifactStatus;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SearchResult {
   id: string;
   title: string;

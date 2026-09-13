@@ -1,7 +1,7 @@
 import { createClient } from '@libsql/client';
 import path from 'path';
 import fs from 'fs';
-import { Conversation, Message, Attachment, ConversationWithMessages, SearchResult, KnowledgeEntry, Project, StageName, StageStatusValue, ProjectStageStatuses } from '@/types';
+import { Conversation, Message, Attachment, ConversationWithMessages, SearchResult, KnowledgeEntry, Project, StageName, StageStatusValue, ProjectStageStatuses, Artifact, ArtifactStage, ArtifactType, ArtifactStatus } from '@/types';
 
 const DB_DIR = path.join(process.cwd(), 'data');
 if (!fs.existsSync(DB_DIR)) {
@@ -646,6 +646,141 @@ export async function deleteKnowledgeEntry(id: string): Promise<boolean> {
   await ensureDbInitialized();
   const res = await client.execute({ sql: `DELETE FROM knowledge_entries WHERE id = ?`, args: [id] });
   return res.rowsAffected > 0;
+}
+
+// =============================================================================
+// Artifacts (Meja Kendali) — CRUD untuk wizard tahapan
+// Kontrak skema: architecture-diagrams.md (tabel `artifact`).
+// DISIPLIN updated_at: semua path tulis (kecuali approve-ulang) set eksplisit
+// strftime('%Y-%m-%d %H:%M:%f','now') — SQLite tidak punya ON UPDATE.
+// =============================================================================
+
+function mapArtifactRow(row: any): Artifact {
+  return {
+    id: String(row.id),
+    project_id: String(row.project_id),
+    stage: String(row.stage) as ArtifactStage,
+    type: String(row.type) as ArtifactType,
+    status: String(row.status) as ArtifactStatus,
+    content: String(row.content ?? ''),
+    created_at: String(row.created_at),
+    updated_at: String(row.updated_at),
+  };
+}
+
+export async function getArtifactRowByProjectStageType(
+  projectId: string,
+  stage: ArtifactStage,
+  type: ArtifactType
+): Promise<Artifact | null> {
+  const res = await client.execute({
+    sql: `SELECT * FROM artifact WHERE project_id = ? AND stage = ? AND type = ? LIMIT 1`,
+    args: [projectId, stage, type],
+  });
+  return res.rows.length > 0 ? mapArtifactRow(res.rows[0]) : null;
+}
+
+/**
+ * Upsert artifact (brief / PRD): satu artifact per project+stage+type.
+ * Brief selalu status 'draft' (derivasi status planning hanya dari approve PRD).
+ */
+export async function upsertBriefArtifact(
+  projectId: string,
+  content: string,
+  id: string
+): Promise<Artifact> {
+  await ensureDbInitialized();
+  const existing = await getArtifactRowByProjectStageType(projectId, 'planning', 'brief');
+  if (existing) {
+    await client.execute({
+      sql: `UPDATE artifact SET content = ?, status = 'draft', updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ?`,
+      args: [content, existing.id],
+    });
+    return (await getArtifactById(existing.id))!;
+  }
+  await client.execute({
+    sql: `INSERT INTO artifact (id, project_id, stage, type, status, content) VALUES (?, ?, 'planning', 'brief', 'draft', ?)`,
+    args: [id, projectId, content],
+  });
+  return (await getArtifactById(id))!;
+}
+
+export async function upsertPrdArtifact(
+  projectId: string,
+  content: string,
+  id: string
+): Promise<Artifact | null> {
+  await ensureDbInitialized();
+  const existing = await getArtifactRowByProjectStageType(projectId, 'planning', 'prd');
+  if (existing) {
+    // Atomik di SQL: kalau approve terjadi di antara cek route dan update ini
+    // (TOCTOU), UPDATE tidak mengenai baris approved — pemanggil return null → 409
+    const res = await client.execute({
+      sql: `UPDATE artifact SET content = ?, status = 'draft', updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ? AND status != 'approved'`,
+      args: [content, existing.id],
+    });
+    if (res.rowsAffected === 0) return null; // approved di antara cek dan simpan
+    return getArtifactById(existing.id);
+  }
+  await client.execute({
+    sql: `INSERT INTO artifact (id, project_id, stage, type, status, content) VALUES (?, ?, 'planning', 'prd', 'draft', ?)`,
+    args: [id, projectId, content],
+  });
+  return getArtifactById(id);
+}
+
+export async function getArtifactById(id: string): Promise<Artifact | null> {
+  await ensureDbInitialized();
+  const res = await client.execute({ sql: `SELECT * FROM artifact WHERE id = ?`, args: [id] });
+  return res.rows.length > 0 ? mapArtifactRow(res.rows[0]) : null;
+}
+
+export async function getArtifactsByProject(
+  projectId: string,
+  filter?: { stage?: ArtifactStage; type?: ArtifactType }
+): Promise<Artifact[]> {
+  await ensureDbInitialized();
+  const clauses: string[] = ['project_id = ?'];
+  const args: (string)[] = [projectId];
+  if (filter?.stage) {
+    clauses.push('stage = ?');
+    args.push(filter.stage);
+  }
+  if (filter?.type) {
+    clauses.push('type = ?');
+    args.push(filter.type);
+  }
+  const res = await client.execute({
+    sql: `SELECT * FROM artifact WHERE ${clauses.join(' AND ')} ORDER BY datetime(updated_at) DESC`,
+    args,
+  });
+  return res.rows.map(mapArtifactRow);
+}
+
+export async function updateArtifactContent(id: string, content: string): Promise<Artifact | null> {
+  await ensureDbInitialized();
+  const existing = await getArtifactById(id);
+  if (!existing) return null;
+  await client.execute({
+    sql: `UPDATE artifact SET content = ?, updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ?`,
+    args: [content, id],
+  });
+  return getArtifactById(id);
+}
+
+export async function approveArtifact(id: string): Promise<Artifact | null> {
+  await ensureDbInitialized();
+  const existing = await getArtifactById(id);
+  if (!existing) return null;
+  if (existing.status === 'approved') {
+    // Approve ulang: no-op aman, updated_at TIDAK diubah (berbohong soal konten)
+    return existing;
+  }
+  await client.execute({
+    sql: `UPDATE artifact SET status = 'approved', updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ?`,
+    args: [id],
+  });
+  return getArtifactById(id);
 }
 
 export default client;
