@@ -2,9 +2,10 @@
 title: 'Fondasi Proyek — entitas, API, dan daftar proyek'
 type: 'feature'
 created: '2026-09-13'
-status: 'ready-for-dev'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
+baseline_commit: '79628ac8258e028bc9029f2a171b989916207dc4'
 context: ['_bmad-output/specs/spec-meja-kendali/SPEC.md']
 ---
 
@@ -71,7 +72,35 @@ context: ['_bmad-output/specs/spec-meja-kendali/SPEC.md']
 
 ## Spec Change Log
 
+
+
 ## Review Triage Log
+
+Review loop 0 — sumber temuan: blind-hunter + edge-case-hunter + verification-gap (diff vs baseline `79628ac`).
+
+- blind-1 / edge-1 — POST menerima `body.id` klien (route.ts:27) — **medium** — terverifikasi: `body.id || crypto.randomUUID()`; tabrakan PK → 500, dan Code Map menyatakan "id via `crypto.randomUUID()`". → **patch** (applied)
+- blind-2 / adv-2 — client-controlled id, sama akar dengan di atas — **medium** — → **patch** (merged, applied)
+- edge-2 — body JSON `null` lolos `.catch(() => ({}))` → TypeError → 500 pada POST (route.ts:22) — **medium** — terverifikasi: `.catch` tidak menangani hasil `null`. → **patch** (applied)
+- edge-3 — masalah sama pada PATCH `[id]/route.ts:26` — **medium** — terverifikasi. → **patch** (applied)
+- edge-4 — panjang name/description tak dibatasi — **medium** — real: string multi-MB tersimpan & dirender; fix tetap dalam kontrak 400 yang sudah ada. → **patch** (applied)
+- edge-5 — timezone: DB simpan UTC, `new Date(ts)` parsing lokal → timestamp WITA bergeser +8 jam — **high** — terverifikasi di `formatTimestamp`. → **patch** (applied, tambah 'Z')
+- edge-6 / adv-4 — tidak ada state pending/busy → double-submit membuat duplikat, tombol tampak mati — **medium** — terverifikasi. → **patch** (applied, state `busy`)
+- edge-7 — hapus tanpa konfirmasi → kehilangan data permanen satu klik — **high** — terverifikasi. → **patch** (applied, `window.confirm`)
+- edge-8 — GET gagal diabaikan → server error tampil sebagai empty state "Belum ada proyek" — **medium** — terverifikasi. → **patch** (applied)
+- edge-9 — `mapProjectRow` null timestamp → "null" string — **false** — kolom punya DEFAULT CURRENT_TIMESTAMP dan semua path insert tidak menyertakan kolom ts; null tak terjangkau.
+- edge-10 — lost update antar-tab (optimistic lock) — **low** — single-user, dua tab mengedit item sama jarang terjadi sehari-hari; fix menambah kolom versi + kontrak 409 = bukan koreksi langsung. → **reject**
+- adv-1 — tidak ada auth di endpoint proyek — **medium** — real, tapi intent frozen menyatakan eksplisit "Never: Tanpa auth/role (personal tool single-user)". → **defer** (out of scope per intent)
+- adv-3 — DELETE tanpa cascade — **false** — belum ada tabel yang mereferensi `projects` (artifact/story/changelog adalah story berikutnya); tidak ada data yang bisa yatim saat ini.
+- adv-5 — error global hanya dirender di form buat; error update/delete muncul jauh dari aksi — **medium** — terverifikasi. → **patch** (applied, pindah blok error ke bawah header)
+- adv-6 — tidak ada pagination — **low** — skala personal, jarang tercapai; fix menambah query param + UI. → **reject**
+- adv-7 — `catch (err: any)` — **low** — developer-only, tapi fix koreksi langsung dan murah. → **patch** (applied, `err: unknown`)
+- adv-8 — `updated_at` ter-bump tanpa perubahan — **false** — constraint frozen "Always: Setiap operasi tulis memperbarui updated_at" justru mensyaratkan perilaku ini.
+- adv-9 — field salah tipe di PATCH diabaikan → pesan 400 membingungkan — **low** — UI sendiri selalu kirim tipe benar; fix menambah percabangan. → **reject**
+- adv-10 / vg-1..4 — tidak ada test: create flow, partial merge updateProject, path 404, ordering listProjects — **medium** (vg pre-verified: pencarian `*.test.*`/`*.spec.*` = 0 file, package.json tanpa script test) — intent frozen "Never: Jangan mengintroduksi ORM/library baru" menutup penambahan test runner tanpa keputusan human. → **defer** (out of scope per intent)
+
+Hasil routing: 0 intent_gap, 0 bad_spec, 12 temuan → patch (applied), 2 grup → defer, sisanya false/reject.
+
+Tindak lanjut verifikasi (npm test / Playwright, 13 test): dua kegagalan awal diperbaiki — (1) test hapus kini menerima dialog konfirmasi baru; (2) akar nyata ditemukan: `datetime('now')` resolusi detik membuat `updated_at` bisa tie untuk aksi beruntun, dan UI tidak memindahkan item hasil edit ke atas — diperbaiki dengan presisi milidetik `strftime('%Y-%m-%d %H:%M:%f','now')` di create/update serta move-to-front di `handleUpdate`. Final: 13/13 test lulus, tsc bersih, smoke API (400 body null/array, limit 200/2000, id server-generated, 404 setelah delete) terverifikasi.
 
 ## Verification
 

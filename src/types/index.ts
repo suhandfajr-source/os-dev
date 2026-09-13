@@ -103,6 +103,14 @@ export interface ConversationWithMessages extends Conversation {
   messages: Message[];
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SearchResult {
   id: string;
   title: string;

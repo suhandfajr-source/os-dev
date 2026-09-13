@@ -1,7 +1,7 @@
 import { createClient } from '@libsql/client';
 import path from 'path';
 import fs from 'fs';
-import { Conversation, Message, Attachment, ConversationWithMessages, SearchResult, KnowledgeEntry } from '@/types';
+import { Conversation, Message, Attachment, ConversationWithMessages, SearchResult, KnowledgeEntry, Project } from '@/types';
 
 const DB_DIR = path.join(process.cwd(), 'data');
 if (!fs.existsSync(DB_DIR)) {
@@ -110,7 +110,85 @@ export async function ensureDbInitialized(): Promise<void> {
     END;
   `);
 
+  // Projects (Meja Kendali) — see _bmad-output/specs/spec-meja-kendali
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS projects (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   isInitialized = true;
+}
+
+// =============================================================================
+// Projects (Meja Kendali) — see _bmad-output/specs/spec-meja-kendali
+// Schema contract (architecture-diagrams.md): id, name, description, created_at, updated_at
+// =============================================================================
+
+function mapProjectRow(row: any): Project {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    description: String(row.description ?? ''),
+    created_at: String(row.created_at),
+    updated_at: String(row.updated_at),
+  };
+}
+
+export async function createProject(
+  id: string,
+  name: string,
+  description: string = ''
+): Promise<Project> {
+  await ensureDbInitialized();
+  // Presisi milidetik agar ordering "terbaru di atas" reliable untuk aksi beruntun
+  // (datetime('now') hanya resolusi detik → bisa tie).
+  const now = `strftime('%Y-%m-%d %H:%M:%f','now')`;
+  await client.execute({
+    sql: `INSERT INTO projects (id, name, description, created_at, updated_at) VALUES (?, ?, ?, ${now}, ${now})`,
+    args: [id, name, description],
+  });
+  const res = await client.execute({ sql: `SELECT * FROM projects WHERE id = ?`, args: [id] });
+  return mapProjectRow(res.rows[0]);
+}
+
+export async function listProjects(): Promise<Project[]> {
+  await ensureDbInitialized();
+  const res = await client.execute(
+    `SELECT * FROM projects ORDER BY datetime(updated_at) DESC`
+  );
+  return res.rows.map(mapProjectRow);
+}
+
+export async function getProjectById(id: string): Promise<Project | null> {
+  await ensureDbInitialized();
+  const res = await client.execute({ sql: `SELECT * FROM projects WHERE id = ?`, args: [id] });
+  if (res.rows.length === 0) return null;
+  return mapProjectRow(res.rows[0]);
+}
+
+export async function updateProject(
+  id: string,
+  fields: { name?: string; description?: string }
+): Promise<Project | null> {
+  await ensureDbInitialized();
+  const existing = await getProjectById(id);
+  if (!existing) return null;
+  await client.execute({
+    sql: `UPDATE projects SET name = ?, description = ?, updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ?`,
+    args: [fields.name ?? existing.name, fields.description ?? existing.description, id],
+  });
+  return getProjectById(id);
+}
+
+export async function deleteProject(id: string): Promise<boolean> {
+  await ensureDbInitialized();
+  const res = await client.execute({ sql: `DELETE FROM projects WHERE id = ?`, args: [id] });
+  return res.rowsAffected > 0;
 }
 
 export async function createConversation(id: string, title: string = 'Percakapan Baru'): Promise<Conversation> {
