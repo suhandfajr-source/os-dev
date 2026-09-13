@@ -22,6 +22,13 @@ test.describe('Dashboard Meja Kendali', () => {
     await expect(card).toContainText('dibuat oleh test e2e');
     await expect(card).toContainText('Dibuat');
 
+    // Story 2: chip status 6 tahap tampil, semua "Belum dimulai" untuk proyek baru
+    const chips = card.locator('span[aria-label^="Planning:"], span[aria-label^="Design:"], span[aria-label^="Development:"], span[aria-label^="Testing:"], span[aria-label^="Deployment:"], span[aria-label^="Maintenance:"]');
+    await expect(chips).toHaveCount(6);
+    for (const stage of ['Planning', 'Design', 'Development', 'Testing', 'Deployment', 'Maintenance']) {
+      await expect(card.locator(`span[aria-label="${stage}: Belum dimulai"]`)).toBeVisible();
+    }
+
     await page.reload();
     await expect(page.locator('div.rounded-xl').filter({ hasText: name }).first()).toBeVisible();
 

@@ -2,7 +2,24 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { FolderPlus, Pencil, Trash2, Check, X, LayoutDashboard } from 'lucide-react';
-import { Project } from '@/types';
+import { Project, StageName, StageStatusValue, ProjectStageStatuses } from '@/types';
+
+const STAGE_LABELS: Record<StageName, string> = {
+  planning: 'Planning',
+  design: 'Design',
+  development: 'Development',
+  testing: 'Testing',
+  deployment: 'Deployment',
+  maintenance: 'Maintenance',
+};
+
+const STAGE_ORDER: StageName[] = ['planning', 'design', 'development', 'testing', 'deployment', 'maintenance'];
+
+function statusChipClass(s: StageStatusValue): string {
+  if (s === 'selesai') return 'bg-[#00a884]/20 text-[#00a884] border-[#00a884]/40';
+  if (s === 'draf') return 'bg-[#f5c33b]/15 text-[#f5c33b] border-[#f5c33b]/40';
+  return 'bg-[#2a3942] text-[#667781] border-[#2f3b43]';
+}
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -14,6 +31,25 @@ export default function DashboardPage() {
   const [editDescription, setEditDescription] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [stageStatuses, setStageStatuses] = useState<Record<string, ProjectStageStatuses>>({});
+  const [statusLoadFailed, setStatusLoadFailed] = useState(false);
+
+  const fetchStageStatuses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/projects/status');
+      if (!res.ok) {
+        console.error('Failed to fetch stage statuses:', res.status);
+        setStatusLoadFailed(true);
+        return;
+      }
+      const data = await res.json();
+      setStageStatuses(data.statuses || {});
+      setStatusLoadFailed(false);
+    } catch (err) {
+      console.error('Failed to fetch stage statuses:', err);
+      setStatusLoadFailed(true);
+    }
+  }, []);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -34,7 +70,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchProjects();
-  }, [fetchProjects]);
+    fetchStageStatuses();
+  }, [fetchProjects, fetchStageStatuses]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +89,7 @@ export default function DashboardPage() {
         return;
       }
       setProjects((prev) => [data.project, ...prev]);
+      fetchStageStatuses();
       setNewName('');
       setNewDescription('');
     } catch (err) {
@@ -85,6 +123,7 @@ export default function DashboardPage() {
       }
       // ordering server = updated_at DESC: item yang baru diedit pindah ke atas
       setProjects((prev) => [data.project, ...prev.filter((p) => p.id !== id)]);
+      fetchStageStatuses();
       cancelEdit();
     } catch (err) {
       console.error('Failed to update project:', err);
@@ -105,6 +144,11 @@ export default function DashboardPage() {
         return;
       }
       setProjects((prev) => prev.filter((p) => p.id !== id));
+      setStageStatuses((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
     } catch (err) {
       console.error('Failed to delete project:', err);
       setError('Gagal menghapus proyek.');
@@ -232,6 +276,30 @@ export default function DashboardPage() {
                     <p className="text-[#667781] text-[11px] mt-2">
                       Dibuat {formatTimestamp(p.created_at)} · Diubah {formatTimestamp(p.updated_at)}
                     </p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {STAGE_ORDER.map((stage) => {
+                        const s = stageStatuses[p.id]?.[stage] ?? 'belum_dimulai';
+                        const label = statusLoadFailed
+                          ? 'Status gagal dimuat'
+                          : s === 'selesai'
+                            ? 'Tahap selesai (artefak disetujui)'
+                            : s === 'draf'
+                              ? 'Dalam proses (ada draf artefak)'
+                              : 'Belum dimulai';
+                        return (
+                          <span
+                            key={stage}
+                            className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                              statusLoadFailed ? 'bg-[#2a3942] text-[#667781] border-[#2f3b43] italic' : statusChipClass(s)
+                            }`}
+                            title={label}
+                            aria-label={`${STAGE_LABELS[stage]}: ${label}`}
+                          >
+                            {STAGE_LABELS[stage]}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <button

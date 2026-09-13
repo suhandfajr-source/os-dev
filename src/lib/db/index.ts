@@ -1,7 +1,7 @@
 import { createClient } from '@libsql/client';
 import path from 'path';
 import fs from 'fs';
-import { Conversation, Message, Attachment, ConversationWithMessages, SearchResult, KnowledgeEntry, Project } from '@/types';
+import { Conversation, Message, Attachment, ConversationWithMessages, SearchResult, KnowledgeEntry, Project, StageName, StageStatusValue, ProjectStageStatuses } from '@/types';
 
 const DB_DIR = path.join(process.cwd(), 'data');
 if (!fs.existsSync(DB_DIR)) {
@@ -121,6 +121,35 @@ export async function ensureDbInitialized(): Promise<void> {
     );
   `);
 
+  // Artifacts (Meja Kendali) — kontrak skema inti: architecture-diagrams.md (nama tabel: `artifact`)
+  // status tahap DIHITUNG dari tabel ini, tidak disimpan terpisah (CAP-4/CAP-7)
+  // Migrasi terjaga: samakan nama tabel hasil pengembangan awal dengan kontrak
+  const legacyTable = await client.execute(
+    `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'artifacts'`
+  );
+  if (legacyTable.rows.length > 0) {
+    await client.execute(`DROP INDEX IF EXISTS idx_artifacts_project_stage`);
+    await client.execute(`ALTER TABLE artifacts RENAME TO artifact`);
+  }
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS artifact (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      stage TEXT NOT NULL,
+      type TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'draft',
+      content TEXT NOT NULL DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+  `);
+
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_artifact_project_stage ON artifact(project_id, stage);
+  `);
+
   isInitialized = true;
 }
 
@@ -189,6 +218,62 @@ export async function deleteProject(id: string): Promise<boolean> {
   await ensureDbInitialized();
   const res = await client.execute({ sql: `DELETE FROM projects WHERE id = ?`, args: [id] });
   return res.rowsAffected > 0;
+}
+
+// =============================================================================
+// Stage Status (Meja Kendali) — derived dari artifacts, bukan disimpan (CAP-4/CAP-7)
+// Aturan (kontrak elicitation): selesai = >=1 artifact approved; draf = >=1 draft
+// tanpa approved; belum_dimulai = tanpa artifact. Di R1 hanya planning &
+// development yang dihitung; 4 tahap lain tetap belum_dimulai (tuntas di R2).
+// =============================================================================
+
+const ALL_STAGES: StageName[] = ['planning', 'design', 'development', 'testing', 'deployment', 'maintenance'];
+const COMPUTED_STAGES_R1: StageName[] = ['planning', 'development'];
+
+function defaultStageStatuses(): ProjectStageStatuses {
+  const out = {} as ProjectStageStatuses;
+  for (const s of ALL_STAGES) out[s] = 'belum_dimulai';
+  return out;
+}
+
+function deriveStageStatus(rows: { status: string }[]): StageStatusValue {
+  const has = (s: string) => rows.some((r) => r.status === s);
+  if (has('approved')) return 'selesai';
+  if (has('draft')) return 'draf';
+  return 'belum_dimulai';
+}
+
+export async function getAllStageStatuses(): Promise<Record<string, ProjectStageStatuses>> {
+  await ensureDbInitialized();
+  // Peta memuat SEMUA proyek — proyek tanpa artifact tetap punya entri default
+  const projectsRes = await client.execute(`SELECT id FROM projects`);
+  const out: Record<string, ProjectStageStatuses> = {};
+  for (const row of projectsRes.rows) {
+    out[String(row.id)] = defaultStageStatuses();
+  }
+
+  const res = await client.execute(
+    `SELECT project_id, stage, status FROM artifact`
+  );
+  const byProjectStage = new Map<string, Map<StageName, { status: string }[]>>();
+  for (const row of res.rows) {
+    const pid = String(row.project_id);
+    const stage = String(row.stage) as StageName;
+    if (!ALL_STAGES.includes(stage)) continue;
+    if (!byProjectStage.has(pid)) byProjectStage.set(pid, new Map());
+    const stageMap = byProjectStage.get(pid)!;
+    if (!stageMap.has(stage)) stageMap.set(stage, []);
+    stageMap.get(stage)!.push({ status: String(row.status) });
+  }
+
+  for (const [pid, stageMap] of byProjectStage) {
+    if (!out[pid]) continue; // artifact yatim — cascade seharusnya mencegah, jaga tetap aman
+    const statuses = out[pid];
+    for (const stage of COMPUTED_STAGES_R1) {
+      statuses[stage] = deriveStageStatus(stageMap.get(stage) || []);
+    }
+  }
+  return out;
 }
 
 export async function createConversation(id: string, title: string = 'Percakapan Baru'): Promise<Conversation> {

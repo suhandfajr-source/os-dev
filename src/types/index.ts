@@ -111,6 +111,16 @@ export interface Project {
   updated_at: string;
 }
 
+export type StageName = 'planning' | 'design' | 'development' | 'testing' | 'deployment' | 'maintenance';
+
+export type StageStatusValue = 'selesai' | 'draf' | 'belum_dimulai';
+
+// Kontrak API status: DB menyimpan 'draft' | 'approved' (EN);
+// derived StageStatusValue 'selesai' | 'draf' | 'belum_dimulai' (ID) —
+// pemetaan tunggal ada di deriveStageStatus (src/lib/db/index.ts).
+
+export type ProjectStageStatuses = Record<StageName, StageStatusValue>;
+
 export interface SearchResult {
   id: string;
   title: string;
