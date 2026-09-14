@@ -29,7 +29,7 @@ import { QUESTIONS_HEADING, QUESTIONS_EMPTY } from '@/lib/ai/prd-prompt';
 
 export default function ProjectDetailPage() {
   const params = useParams();
-  const projectId = params?.id as string;
+  const projectId = (params?.projectId || params?.id) as string;
 
   const [project, setProject] = useState<Project | null>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
