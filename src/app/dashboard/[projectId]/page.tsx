@@ -21,6 +21,8 @@ import {
   Kanban,
   History,
   Send,
+  Copy,
+  FileCode,
 } from 'lucide-react';
 import { Artifact, Project, Story, StoryStatus, ChangelogEntry } from '@/types';
 import { QUESTIONS_HEADING, QUESTIONS_EMPTY } from '@/lib/ai/prd-prompt';
@@ -59,6 +61,13 @@ export default function ProjectDetailPage() {
   const [changelogNote, setChangelogNote] = useState('');
   const [addingChangelog, setAddingChangelog] = useState(false);
   const [updatingStoryId, setUpdatingStoryId] = useState<string | null>(null);
+
+  // Paket Handoff (story 6)
+  const [handoffModalOpen, setHandoffModalOpen] = useState(false);
+  const [handoffStory, setHandoffStory] = useState<Story | null>(null);
+  const [handoffText, setHandoffText] = useState('');
+  const [loadingHandoff, setLoadingHandoff] = useState(false);
+  const [copiedHandoff, setCopiedHandoff] = useState(false);
 
   const loadProject = useCallback(async () => {
     try {
@@ -432,6 +441,43 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleOpenHandoff = async (story: Story) => {
+    setError('');
+    setNotice('');
+    setHandoffStory(story);
+    setLoadingHandoff(true);
+    setHandoffModalOpen(true);
+    setCopiedHandoff(false);
+    try {
+      const res = await fetch(`/api/stories/${story.id}/handoff`);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Gagal memuat paket handoff.');
+        setHandoffModalOpen(false);
+        return;
+      }
+      setHandoffText(data.handoff);
+    } catch (err) {
+      console.error('Failed to load handoff:', err);
+      setError('Gagal memuat paket handoff.');
+      setHandoffModalOpen(false);
+    } finally {
+      setLoadingHandoff(false);
+    }
+  };
+
+  const handleCopyHandoff = async () => {
+    if (!handoffText) return;
+    try {
+      await navigator.clipboard.writeText(handoffText);
+      setCopiedHandoff(true);
+      setTimeout(() => setCopiedHandoff(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+      setError('Gagal menyalin ke clipboard.');
+    }
+  };
+
   const getStoryStatusBadge = (status: StoryStatus) => {
     switch (status) {
       case 'approved':
@@ -742,6 +788,15 @@ export default function ProjectDetailPage() {
                           >
                             {s.status}
                           </span>
+                          {s.status !== 'draft' && (
+                            <button
+                              onClick={() => handleOpenHandoff(s)}
+                              title="Lihat dan salin paket handoff untuk coding agent"
+                              className="p-1.5 rounded text-[#8696a0] hover:text-[#00a884] hover:bg-[#202c33] transition-colors"
+                            >
+                              <Copy size={13} />
+                            </button>
+                          )}
                           {s.status === 'draft' && (
                             <>
                               <button
@@ -810,7 +865,14 @@ export default function ProjectDetailPage() {
                           <p className="text-[#8696a0] text-[11px] mt-1 whitespace-pre-wrap line-clamp-3">
                             {s.description}
                           </p>
-                          <div className="mt-2.5 pt-2 border-t border-[#2f3b43] flex justify-end">
+                          <div className="mt-2.5 pt-2 border-t border-[#2f3b43] flex items-center justify-between">
+                            <button
+                              onClick={() => handleOpenHandoff(s)}
+                              title="Lihat dan salin paket handoff untuk coding agent"
+                              className="inline-flex items-center gap-1 text-[#8696a0] hover:text-[#00a884] text-[11px] font-medium transition-colors"
+                            >
+                              <Copy size={11} /> Handoff
+                            </button>
                             <button
                               onClick={() => handleUpdateStoryStatus(s.id, 'doing')}
                               disabled={updatingStoryId !== null || busy}
@@ -843,7 +905,14 @@ export default function ProjectDetailPage() {
                           <p className="text-[#8696a0] text-[11px] mt-1 whitespace-pre-wrap line-clamp-3">
                             {s.description}
                           </p>
-                          <div className="mt-2.5 pt-2 border-t border-[#2f3b43] flex justify-end">
+                          <div className="mt-2.5 pt-2 border-t border-[#2f3b43] flex items-center justify-between">
+                            <button
+                              onClick={() => handleOpenHandoff(s)}
+                              title="Lihat dan salin paket handoff untuk coding agent"
+                              className="inline-flex items-center gap-1 text-[#8696a0] hover:text-[#60a5fa] text-[11px] font-medium transition-colors"
+                            >
+                              <Copy size={11} /> Handoff
+                            </button>
                             <button
                               onClick={() => handleUpdateStoryStatus(s.id, 'done')}
                               disabled={updatingStoryId !== null || busy}
@@ -876,7 +945,14 @@ export default function ProjectDetailPage() {
                           <p className="text-[#667781] text-[11px] mt-1 whitespace-pre-wrap line-clamp-2">
                             {s.description}
                           </p>
-                          <div className="mt-2.5 pt-2 border-t border-[#2f3b43] flex justify-end">
+                          <div className="mt-2.5 pt-2 border-t border-[#2f3b43] flex items-center justify-between">
+                            <button
+                              onClick={() => handleOpenHandoff(s)}
+                              title="Lihat dan salin paket handoff untuk coding agent"
+                              className="inline-flex items-center gap-1 text-[#8696a0] hover:text-[#34d399] text-[11px] font-medium transition-colors"
+                            >
+                              <Copy size={11} /> Handoff
+                            </button>
                             <button
                               onClick={() => handleUpdateStoryStatus(s.id, 'doing')}
                               disabled={updatingStoryId !== null || busy}
@@ -980,6 +1056,87 @@ export default function ProjectDetailPage() {
               ))}
             </ul>
           </section>
+        )}
+
+        {/* Modal Paket Handoff ke Coding Agent (Story 6) */}
+        {handoffModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#202c33] border border-[#2f3b43] rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#2f3b43]">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#00a884]/20 flex items-center justify-center text-[#00a884]">
+                    <FileCode size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-[#e9edef]">
+                      Paket Handoff ke Coding Agent
+                    </h3>
+                    <p className="text-[11px] text-[#8696a0]">
+                      {handoffStory ? handoffStory.title : 'Memuat…'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setHandoffModalOpen(false)}
+                  className="text-[#8696a0] hover:text-[#e9edef] p-1.5 rounded-lg hover:bg-[#2a3942] transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 flex-1 overflow-y-auto">
+                <p className="text-xs text-[#8696a0] mb-3">
+                  Teks Markdown di bawah ini menyatukan konteks proyek, kriteria selesai story, dan arsitektur teknis. Salin utuh lalu tempelkan ke prompt coding agent (Claude Code, Cursor, Windsurf, pi, dll.).
+                </p>
+                {loadingHandoff ? (
+                  <div className="py-12 text-center text-xs text-[#8696a0]">
+                    Menyusun paket handoff…
+                  </div>
+                ) : (
+                  <textarea
+                    readOnly
+                    value={handoffText}
+                    rows={15}
+                    className="w-full bg-[#111b21] text-[#e9edef] rounded-lg p-3 text-xs font-mono outline-none border border-[#2f3b43] resize-y leading-relaxed"
+                  />
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between px-5 py-3 border-t border-[#2f3b43] bg-[#111b21]/50 rounded-b-xl">
+                <span className="text-[11px] text-[#667781]">
+                  Siap disalin utuh (Markdown)
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setHandoffModalOpen(false)}
+                    className="bg-[#2a3942] hover:bg-[#334550] text-[#e9edef] text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Tutup
+                  </button>
+                  <button
+                    onClick={handleCopyHandoff}
+                    disabled={loadingHandoff || !handoffText}
+                    className="inline-flex items-center gap-1.5 bg-[#00a884] hover:bg-[#008f72] disabled:opacity-40 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg transition-colors shadow-sm"
+                  >
+                    {copiedHandoff ? (
+                      <>
+                        <Check size={14} className="text-white" />
+                        <span>Tersalin! ✅</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} />
+                        <span>Salin ke Clipboard</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
