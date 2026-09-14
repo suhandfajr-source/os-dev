@@ -41,9 +41,9 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
       );
     }
 
-    // Prasyarat 3: tidak ada story approved (regenerate tidak boleh menghapus keputusan user)
+    // Prasyarat 3: tidak ada story non-draft (regenerate tidak boleh menghapus keputusan user)
     const stories = await listStories(projectId);
-    if (stories.some((s) => s.status === 'approved')) {
+    if (stories.some((s) => s.status !== 'draft')) {
       return NextResponse.json(
         { error: 'Ada story yang sudah disetujui — regenerasi terkunci agar keputusan user tidak hilang.' },
         { status: 409 }

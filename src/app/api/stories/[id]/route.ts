@@ -32,7 +32,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     if (!existing) {
       return NextResponse.json({ error: 'Story tidak ditemukan.' }, { status: 404 });
     }
-    if (existing.status === 'approved') {
+    if (existing.status !== 'draft') {
       return NextResponse.json({ error: 'Story sudah disetujui — konten terkunci.' }, { status: 409 });
     }
 

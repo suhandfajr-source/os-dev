@@ -1,7 +1,7 @@
 import { createClient } from '@libsql/client';
 import path from 'path';
 import fs from 'fs';
-import { Conversation, Message, Attachment, ConversationWithMessages, SearchResult, KnowledgeEntry, Project, StageName, StageStatusValue, ProjectStageStatuses, Artifact, ArtifactStage, ArtifactType, ArtifactStatus, Story, StoryStatus } from '@/types';
+import { Conversation, Message, Attachment, ConversationWithMessages, SearchResult, KnowledgeEntry, Project, StageName, StageStatusValue, ProjectStageStatuses, Artifact, ArtifactStage, ArtifactType, ArtifactStatus, Story, StoryStatus, ChangelogEntry } from '@/types';
 
 const DB_DIR = path.join(process.cwd(), 'data');
 if (!fs.existsSync(DB_DIR)) {
@@ -185,6 +185,22 @@ async function doInitialize(): Promise<void> {
 
   await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_story_project_order ON story(project_id, "order");
+  `);
+
+  // Changelog (Meja Kendali) — kontrak skema inti. APPEND-ONLY: tidak ada
+  // endpoint update/delete (story 5).
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS changelog (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      note TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+  `);
+
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_changelog_project ON changelog(project_id, created_at);
   `);
 
   // Walkthrough 324ad1b #3.2: penanda akhir doInitialize (pengganti flag isInitialized)
@@ -421,8 +437,8 @@ export async function approveStory(id: string): Promise<Story | null> {
   await ensureDbInitialized();
   const existing = await getStoryById(id);
   if (!existing) return null;
-  if (existing.status === 'approved') {
-    // Approve ulang: no-op aman, updated_at TIDAK diubah
+  // No-op untuk status apa pun selain draft (approved/doing/done tidak di-reset)
+  if (existing.status !== 'draft') {
     return existing;
   }
   await client.execute({
@@ -430,6 +446,50 @@ export async function approveStory(id: string): Promise<Story | null> {
     args: [id],
   });
   return getStoryById(id);
+}
+
+/**
+ * Transisi status pengerjaan (story board). Target hanya 'doing' | 'done';
+ * hanya dari story yang sudah approved (draft harus lewat approve dulu).
+ */
+export async function updateStoryStatus(id: string, target: 'doing' | 'done'): Promise<Story | null> {
+  await ensureDbInitialized();
+  const existing = await getStoryById(id);
+  if (!existing) return null;
+  if (existing.status === 'draft') return null; // harus lewat approve dulu — route → 409
+  await client.execute({
+    sql: `UPDATE story SET status = ?, updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ?`,
+    args: [target, id],
+  });
+  return getStoryById(id);
+}
+
+function mapChangelogRow(row: any): ChangelogEntry {
+  return {
+    id: String(row.id),
+    project_id: String(row.project_id),
+    note: String(row.note),
+    created_at: String(row.created_at),
+  };
+}
+
+export async function addChangelogEntry(projectId: string, note: string, id: string): Promise<ChangelogEntry> {
+  await ensureDbInitialized();
+  await client.execute({
+    sql: `INSERT INTO changelog (id, project_id, note) VALUES (?, ?, ?)`,
+    args: [id, projectId, note],
+  });
+  const res = await client.execute({ sql: `SELECT * FROM changelog WHERE id = ?`, args: [id] });
+  return mapChangelogRow(res.rows[0]);
+}
+
+export async function getChangelogEntries(projectId: string): Promise<ChangelogEntry[]> {
+  await ensureDbInitialized();
+  const res = await client.execute({
+    sql: `SELECT * FROM changelog WHERE project_id = ? ORDER BY datetime(created_at) DESC, rowid DESC`,
+    args: [projectId],
+  });
+  return res.rows.map(mapChangelogRow);
 }
 
 export async function createConversation(id: string, title: string = 'Percakapan Baru'): Promise<Conversation> {

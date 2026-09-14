@@ -169,7 +169,7 @@ export interface Artifact {
   updated_at: string;
 }
 
-export type StoryStatus = 'draft' | 'approved';
+export type StoryStatus = 'draft' | 'approved' | 'doing' | 'done';
 
 export interface Story {
   id: string;
@@ -180,6 +180,13 @@ export interface Story {
   order: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface ChangelogEntry {
+  id: string;
+  project_id: string;
+  note: string;
+  created_at: string;
 }
 
 export interface SearchResult {

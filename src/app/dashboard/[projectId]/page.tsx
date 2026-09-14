@@ -16,8 +16,13 @@ import {
   Pencil,
   Check,
   X,
+  Play,
+  RotateCcw,
+  Kanban,
+  History,
+  Send,
 } from 'lucide-react';
-import { Artifact, Project, Story } from '@/types';
+import { Artifact, Project, Story, StoryStatus, ChangelogEntry } from '@/types';
 import { QUESTIONS_HEADING, QUESTIONS_EMPTY } from '@/lib/ai/prd-prompt';
 
 export default function ProjectDetailPage() {
@@ -48,6 +53,12 @@ export default function ProjectDetailPage() {
   const [editStoryTitle, setEditStoryTitle] = useState('');
   const [editStoryDescription, setEditStoryDescription] = useState('');
   const [storyWarningShown, setStoryWarningShown] = useState(false);
+
+  // Story Board & Changelog (story 5)
+  const [changelogs, setChangelogs] = useState<ChangelogEntry[]>([]);
+  const [changelogNote, setChangelogNote] = useState('');
+  const [addingChangelog, setAddingChangelog] = useState(false);
+  const [updatingStoryId, setUpdatingStoryId] = useState<string | null>(null);
 
   const loadProject = useCallback(async () => {
     try {
@@ -110,14 +121,30 @@ export default function ProjectDetailPage() {
     }
   }, [projectId]);
 
+  const loadChangelogs = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/changelog`);
+      if (res.ok) {
+        const data = await res.json();
+        setChangelogs(data.entries || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch changelogs:', err);
+    }
+  }, [projectId]);
+
   useEffect(() => {
     if (!projectId) return;
     loadProject();
     loadArtifacts();
     loadStories();
-  }, [projectId, loadProject, loadArtifacts, loadStories]);
+    loadChangelogs();
+  }, [projectId, loadProject, loadArtifacts, loadStories, loadChangelogs]);
 
-  const approvedStoryCount = stories.filter((s) => s.status === 'approved').length;
+  const nonDraftStoryCount = stories.filter((s) => s.status !== 'draft').length;
+  const approvedStories = stories.filter((s) => s.status === 'approved');
+  const doingStories = stories.filter((s) => s.status === 'doing');
+  const doneStories = stories.filter((s) => s.status === 'done');
 
   const handleDraftPrd = async () => {
     setError('');
@@ -297,7 +324,7 @@ export default function ProjectDetailPage() {
     setError('');
     setNotice('');
     // Peringatan konsekuensi sebelum approve story pertama ( elicitation story 4 )
-    if (approvedStoryCount === 0 && !storyWarningShown) {
+    if (nonDraftStoryCount === 0 && !storyWarningShown) {
       const ok = window.confirm(
         'Menyetujui story PERTAMA akan mengunci regenerasi spec + stories secara permanen (409). Lanjutkan?'
       );
@@ -348,6 +375,73 @@ export default function ProjectDetailPage() {
       setError('Gagal menyimpan story.');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleUpdateStoryStatus = async (storyId: string, status: 'doing' | 'done') => {
+    setError('');
+    setNotice('');
+    setUpdatingStoryId(storyId);
+    try {
+      const res = await fetch(`/api/stories/${storyId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Gagal memperbarui status story.');
+        return;
+      }
+      const label = status === 'doing' ? 'sedang dikerjakan' : 'selesai';
+      setNotice(`Status story diperbarui ke ${label}.`);
+      await loadStories();
+    } catch (err) {
+      console.error('Failed to update story status:', err);
+      setError('Gagal memperbarui status story.');
+    } finally {
+      setUpdatingStoryId(null);
+    }
+  };
+
+  const handleAddChangelog = async () => {
+    const trimmed = changelogNote.trim();
+    if (!trimmed) return;
+    setError('');
+    setNotice('');
+    setAddingChangelog(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/changelog`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Gagal menambahkan catatan changelog.');
+        return;
+      }
+      setChangelogNote('');
+      setNotice('Catatan changelog berhasil ditambahkan.');
+      await loadChangelogs();
+    } catch (err) {
+      console.error('Failed to add changelog:', err);
+      setError('Gagal menambahkan catatan changelog.');
+    } finally {
+      setAddingChangelog(false);
+    }
+  };
+
+  const getStoryStatusBadge = (status: StoryStatus) => {
+    switch (status) {
+      case 'approved':
+        return 'bg-[#00a884]/20 text-[#00a884] border-[#00a884]/40';
+      case 'doing':
+        return 'bg-[#3b82f6]/20 text-[#60a5fa] border-[#3b82f6]/40';
+      case 'done':
+        return 'bg-[#10b981]/25 text-[#34d399] border-[#10b981]/50';
+      default:
+        return 'bg-[#f5c33b]/15 text-[#f5c33b] border-[#f5c33b]/40';
     }
   };
 
@@ -530,16 +624,16 @@ export default function ProjectDetailPage() {
               <span className="font-medium text-sm">Langkah 3 — Pecah PRD jadi Spec + Stories</span>
               {stories.length > 0 && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded border bg-[#00a884]/20 text-[#00a884] border-[#00a884]/40">
-                  {approvedStoryCount}/{stories.length} story disetujui
+                  {nonDraftStoryCount}/{stories.length} story disetujui
                 </span>
               )}
             </div>
 
             <button
               onClick={handleDraftSpec}
-              disabled={generatingSpec || specStatus === 'approved' || approvedStoryCount > 0}
+              disabled={generatingSpec || specStatus === 'approved' || nonDraftStoryCount > 0}
               title={
-                approvedStoryCount > 0
+                nonDraftStoryCount > 0
                   ? 'Ada story yang sudah disetujui — regenerasi terkunci'
                   : 'Minta AI memecah PRD menjadi spec + stories'
               }
@@ -644,11 +738,7 @@ export default function ProjectDetailPage() {
                         </div>
                         <div className="flex gap-1 shrink-0 items-center">
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded border ${
-                              s.status === 'approved'
-                                ? 'bg-[#00a884]/20 text-[#00a884] border-[#00a884]/40'
-                                : 'bg-[#f5c33b]/15 text-[#f5c33b] border-[#f5c33b]/40'
-                            }`}
+                            className={`text-[10px] px-1.5 py-0.5 rounded border ${getStoryStatusBadge(s.status)}`}
                           >
                             {s.status}
                           </span>
@@ -680,6 +770,185 @@ export default function ProjectDetailPage() {
             )}
           </section>
         )}
+
+        {/* Tahap Development — Story Board (Story 5) */}
+        {stories.length > 0 && (
+          <section className="bg-[#202c33] rounded-xl p-4 mb-6 border border-[#2f3b43]">
+            <div className="flex items-center justify-between mb-3 text-[#e9edef]">
+              <div className="flex items-center gap-2">
+                <Kanban size={18} className="text-[#00a884]" />
+                <span className="font-medium text-sm">Tahap Development — Story Board</span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-[#8696a0]">
+                <span>{doingStories.length} sedang dikerjakan</span>
+                <span>·</span>
+                <span>{doneStories.length} selesai</span>
+              </div>
+            </div>
+
+            {nonDraftStoryCount === 0 ? (
+              <p className="text-xs text-[#8696a0] bg-[#111b21] rounded-lg p-3">
+                Belum ada story yang disetujui. Setujui story di Langkah 3 Planning di atas agar masuk ke antrean pengerjaan board.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Kolom 1: Siap Dikerjakan (approved) */}
+                <div className="bg-[#111b21] rounded-lg p-3 border border-[#2f3b43]/70 flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-semibold text-[#e9edef]">Siap Dikerjakan</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#00a884]/20 text-[#00a884] border border-[#00a884]/40 font-medium">
+                      {approvedStories.length}
+                    </span>
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    {approvedStories.length === 0 ? (
+                      <p className="text-[11px] text-[#667781] italic py-2 text-center">Tidak ada story</p>
+                    ) : (
+                      approvedStories.map((s) => (
+                        <div key={s.id} className="bg-[#202c33] rounded-md p-2.5 border border-[#2f3b43]">
+                          <p className="text-[#e9edef] text-xs font-medium">{s.title}</p>
+                          <p className="text-[#8696a0] text-[11px] mt-1 whitespace-pre-wrap line-clamp-3">
+                            {s.description}
+                          </p>
+                          <div className="mt-2.5 pt-2 border-t border-[#2f3b43] flex justify-end">
+                            <button
+                              onClick={() => handleUpdateStoryStatus(s.id, 'doing')}
+                              disabled={updatingStoryId !== null || busy}
+                              className="inline-flex items-center gap-1 bg-[#00a884] hover:bg-[#008f72] disabled:opacity-40 text-white text-[11px] font-medium px-2.5 py-1 rounded transition-colors"
+                            >
+                              <Play size={11} /> Mulai
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Kolom 2: Sedang Dikerjakan (doing) */}
+                <div className="bg-[#111b21] rounded-lg p-3 border border-[#2f3b43]/70 flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-semibold text-[#60a5fa]">Sedang Dikerjakan</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#3b82f6]/20 text-[#60a5fa] border border-[#3b82f6]/40 font-medium">
+                      {doingStories.length}
+                    </span>
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    {doingStories.length === 0 ? (
+                      <p className="text-[11px] text-[#667781] italic py-2 text-center">Tidak ada story</p>
+                    ) : (
+                      doingStories.map((s) => (
+                        <div key={s.id} className="bg-[#202c33] rounded-md p-2.5 border border-[#3b82f6]/40">
+                          <p className="text-[#e9edef] text-xs font-medium">{s.title}</p>
+                          <p className="text-[#8696a0] text-[11px] mt-1 whitespace-pre-wrap line-clamp-3">
+                            {s.description}
+                          </p>
+                          <div className="mt-2.5 pt-2 border-t border-[#2f3b43] flex justify-end">
+                            <button
+                              onClick={() => handleUpdateStoryStatus(s.id, 'done')}
+                              disabled={updatingStoryId !== null || busy}
+                              className="inline-flex items-center gap-1 bg-[#3b82f6] hover:bg-[#2563eb] disabled:opacity-40 text-white text-[11px] font-medium px-2.5 py-1 rounded transition-colors"
+                            >
+                              <Check size={11} /> Selesai
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Kolom 3: Selesai (done) */}
+                <div className="bg-[#111b21] rounded-lg p-3 border border-[#2f3b43]/70 flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-semibold text-[#34d399]">Selesai</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#10b981]/25 text-[#34d399] border border-[#10b981]/50 font-medium">
+                      {doneStories.length}
+                    </span>
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    {doneStories.length === 0 ? (
+                      <p className="text-[11px] text-[#667781] italic py-2 text-center">Belum ada yang selesai</p>
+                    ) : (
+                      doneStories.map((s) => (
+                        <div key={s.id} className="bg-[#202c33] rounded-md p-2.5 border border-[#10b981]/30">
+                          <p className="text-[#e9edef] text-xs font-medium line-through text-[#8696a0]">{s.title}</p>
+                          <p className="text-[#667781] text-[11px] mt-1 whitespace-pre-wrap line-clamp-2">
+                            {s.description}
+                          </p>
+                          <div className="mt-2.5 pt-2 border-t border-[#2f3b43] flex justify-end">
+                            <button
+                              onClick={() => handleUpdateStoryStatus(s.id, 'doing')}
+                              disabled={updatingStoryId !== null || busy}
+                              title="Buka ulang story ke status Sedang Dikerjakan"
+                              className="inline-flex items-center gap-1 bg-[#2a3942] hover:bg-[#334550] disabled:opacity-40 text-[#e9edef] text-[11px] font-medium px-2 py-1 rounded transition-colors"
+                            >
+                              <RotateCcw size={11} /> Buka ulang
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Tahap Development — Changelog (Story 5) */}
+        <section className="bg-[#202c33] rounded-xl p-4 mb-6 border border-[#2f3b43]">
+          <div className="flex items-center justify-between mb-3 text-[#e9edef]">
+            <div className="flex items-center gap-2">
+              <History size={18} className="text-[#00a884]" />
+              <span className="font-medium text-sm">Tahap Development — Changelog</span>
+            </div>
+            <span className="text-[11px] text-[#8696a0]">
+              {changelogs.length} catatan · append-only
+            </span>
+          </div>
+
+          {/* Form input */}
+          <div className="mb-4">
+            <textarea
+              value={changelogNote}
+              onChange={(e) => setChangelogNote(e.target.value)}
+              placeholder="Tulis catatan keputusan arsitektur, bugfix, atau progres pengerjaan di sini…"
+              rows={3}
+              maxLength={2000}
+              className="w-full bg-[#111b21] text-[#e9edef] placeholder-[#8696a0] rounded-lg px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-[#00a884] resize-y"
+            />
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-[11px] text-[#667781]">{changelogNote.length}/2.000 karakter</span>
+              <button
+                onClick={handleAddChangelog}
+                disabled={!changelogNote.trim() || addingChangelog}
+                className="inline-flex items-center gap-1.5 bg-[#00a884] hover:bg-[#008f72] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <Send size={13} />
+                {addingChangelog ? 'Menyimpan…' : 'Tambah Catatan'}
+              </button>
+            </div>
+          </div>
+
+          {/* Daftar catatan */}
+          <div className="space-y-2">
+            {changelogs.length === 0 ? (
+              <p className="text-xs text-[#8696a0] bg-[#111b21] rounded-lg p-3 text-center">
+                Belum ada catatan changelog.
+              </p>
+            ) : (
+              changelogs.map((c) => (
+                <div key={c.id} className="bg-[#111b21] rounded-lg p-3 border border-[#2f3b43]">
+                  <div className="flex items-center justify-between text-[11px] text-[#8696a0] mb-1.5">
+                    <span className="font-mono">{c.created_at}</span>
+                  </div>
+                  <p className="text-[#e9edef] text-xs whitespace-pre-wrap break-words leading-relaxed">{c.note}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
 
         {/* Artefak proyek */}
         {artifacts.length > 0 && (
